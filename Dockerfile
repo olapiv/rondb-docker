@@ -131,5 +131,5 @@ RUN chown mysql:mysql --from=root:root -R $HOPSWORK_DIR /home/mysql
 USER mysql:mysql
 
 ENTRYPOINT ["./docker_entrypoints/rondb_standalone/main.sh"]
-EXPOSE 3306 33060 11860 1186
+EXPOSE 3306 33060 11860 1186 4406 5406
 CMD ["mysqld"]
