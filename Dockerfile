@@ -23,7 +23,8 @@ RUN --mount=type=cache,target=/var/cache/apt,id=ubuntu22-apt \
     apt-get update -y \
     && apt-get install -y wget tar gzip \
     libncurses5 libnuma-dev \
-    bc
+    bc default-jdk maven
+    # Java & Maven are required by YCSB
     # bc is required by dbt2
     # libncurses5 & libnuma-dev are required for x86 only
 
