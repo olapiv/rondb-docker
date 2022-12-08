@@ -58,7 +58,7 @@ RONDB_TARBALL_LOCAL_REMOTE=remote
 NUM_MGM_CONTAINERS=1
 NUM_MYSQL_CONTAINERS=0
 NUM_REST_API_CONTAINERS=0
-NUM_REST_CONTAINERS=0
+NUM_BENCH_CONTAINERS=0
 REPLICATION_FACTOR=1
 NODE_GROUPS=1
 RUN_BENCHMARK=
@@ -142,16 +142,16 @@ echo "Number of management containers   = ${NUM_MGM_CONTAINERS}"
 echo "Node groups                       = ${NODE_GROUPS}"
 echo "Replication factor                = ${REPLICATION_FACTOR}"
 echo "Number of MySQL containers        = ${NUM_MYSQL_CONTAINERS}"
-echo "Number of REST API containers     = ${NUM_REST_CONTAINERS}"
+echo "Number of REST API containers     = ${NUM_REST_API_CONTAINERS}"
 echo "Number of benchmarking containers = ${NUM_BENCH_CONTAINERS}"
 echo "Run benchmark                     = ${RUN_BENCHMARK}"
 echo
 
 set -- "${POSITIONAL[@]}" # restore unknown options
 if [[ -n $1 ]]; then
-    echo "##################">&2
-    echo "Illegal arguments: $@">&2
-    echo "##################">&2
+    echo "##################" >&2
+    echo "Illegal arguments: $@" >&2
+    echo "##################" >&2
     echo
     print_usage
     exit 1
@@ -224,7 +224,7 @@ RONDB_VERSION_NO_DOT=$(echo "$RONDB_VERSION" | tr -d '.')
 # yes | docker container prune
 # yes | docker volume prune
 
-FILE_SUFFIX="v${RONDB_VERSION_NO_DOT}_m${NUM_MGM_CONTAINERS}_g${NODE_GROUPS}_r${REPLICATION_FACTOR}_my${NUM_MYSQL_CONTAINERS}_ra${NUM_REST_CONTAINERS}_b${NUM_BENCH_CONTAINERS}"
+FILE_SUFFIX="v${RONDB_VERSION_NO_DOT}_m${NUM_MGM_CONTAINERS}_g${NODE_GROUPS}_r${REPLICATION_FACTOR}_my${NUM_MYSQL_CONTAINERS}_ra${NUM_REST_API_CONTAINERS}_b${NUM_BENCH_CONTAINERS}"
 
 # https://stackoverflow.com/a/246128/9068781
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
@@ -256,7 +256,7 @@ AUTOBENCH_SYS_MULTI_FILEPATH="$SYSBENCH_MULTI_DIR/autobench.conf"
 AUTOBENCH_DBT2_SINGLE_FILEPATH="$DBT2_SINGLE_DIR/autobench.conf"
 AUTOBENCH_DBT2_MULTI_FILEPATH="$DBT2_MULTI_DIR/autobench.conf"
 
-# Since we are mounting the entire benchmarking directories, these files would be 
+# Since we are mounting the entire benchmarking directories, these files would be
 # overwritten if they are added via the Dockerfile.
 cp "$SCRIPT_DIR/resources/config_templates/dbt2_run_1.conf.single" "$DBT2_SINGLE_DIR/dbt2_run_1.conf"
 if [ "$NUM_MYSQL_CONTAINERS" -gt 1 ]; then
@@ -352,10 +352,11 @@ BIND_DBT2_MULTI_DIR="
         source: $DBT2_MULTI_DIR
         target: /home/mysql/benchmarks/dbt2_multi"
 
+REST_API_CONFIG_CONTAINER_PATH="/srv/hops/mysql-cluster/rest_api.json"
 BIND_REST_API_JSON_TEMPLATE="
       - type: bind
         source: $REST_API_JSON_FILEPATH
-        target: /srv/hops/mysql-cluster/rest_api.json"
+        target: $REST_API_CONFIG_CONTAINER_PATH"
 
 # We add volumes to the data dir for debugging purposes
 VOLUME_DATA_DIR_TEMPLATE="
@@ -551,6 +552,50 @@ fi
 # Remove last semi-colon from MULTI_MYSQLD_IPS
 MULTI_MYSQLD_IPS=${MULTI_MYSQLD_IPS%?}
 
+FIRST_USEABLE_API_NODE_ID=195
+if [ $NUM_REST_API_CONTAINERS -gt 0 ]; then
+    for CONTAINER_NUM in $(seq $NUM_REST_API_CONTAINERS); do
+        template="$RONDB_DOCKER_COMPOSE_TEMPLATE"
+        SERVICE_NAME="rest_$CONTAINER_NUM"
+        template=$(echo "$template" | sed "s/<insert-service-name>/$SERVICE_NAME/g")
+        command=$(printf "$COMMAND_TEMPLATE" "[\"rdrs\", \"-config=$REST_API_CONFIG_CONTAINER_PATH\"]")
+
+        template+="$command"
+
+        # Make sure these memory boundaries are allowed in Docker settings!
+        # To check whether they are being used use `docker stats`
+        template+="
+      deploy:
+        resources:
+          limits:
+            cpus: '$REST_API_CPU_LIMIT'
+            memory: $REST_API_MEMORY_LIMIT
+          reservations:
+            memory: $REST_API_MEMORY_RESERVATION"
+
+        template+="$VOLUMES_FIELD"
+        template+="$BIND_REST_API_JSON_TEMPLATE"
+
+        # Open ports for REST API server
+        template+="$PORTS_FIELD"
+        ports=$(printf "$PORTS_TEMPLATE" "4406" "4406")
+        template+="$ports"
+        ports=$(printf "$PORTS_TEMPLATE" "5406" "5406")
+        template+="$ports"
+
+        BASE_DOCKER_COMPOSE_FILE+="$template"
+
+        NODE_ID_OFFSET=$(($((CONTAINER_NUM - 1)) * $API_SLOTS_PER_CONTAINER))
+        for SLOT_NUM in $(seq $API_SLOTS_PER_CONTAINER); do
+            NODE_ID=$(($FIRST_USEABLE_API_NODE_ID + $NODE_ID_OFFSET + $(($SLOT_NUM - 1))))
+            # NodeId, NodeActive, ArbitrationRank, HostName
+            SLOT=$(printf "$CONFIG_INI_API_TEMPLATE" "$NODE_ID" "1" "1" "$SERVICE_NAME")
+            CONFIG_INI=$(printf "%s\n\n%s" "$CONFIG_INI" "$SLOT")
+        done
+        FIRST_USEABLE_API_NODE_ID=$(($NODE_ID + 1))
+    done
+fi
+
 if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
     for CONTAINER_NUM in $(seq $NUM_BENCH_CONTAINERS); do
         template="$RONDB_DOCKER_COMPOSE_TEMPLATE"
@@ -582,13 +627,12 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
       deploy:
         resources:
           limits:
-            cpus: '$API_CPU_LIMIT'
-            memory: $API_MEMORY_LIMIT
+            cpus: '$BENCH_CPU_LIMIT'
+            memory: $BENCH_MEMORY_LIMIT
           reservations:
-            memory: $API_MEMORY_RESERVATION"
+            memory: $BENCH_MEMORY_RESERVATION"
 
         template+="$VOLUMES_FIELD"
-        template+="$BIND_REST_API_JSON_TEMPLATE"
         if [ "$NUM_MYSQL_CONTAINERS" -gt 0 ]; then
             template+="$BIND_SYS_SINGLE_DIR"
             template+="$BIND_DBT2_SINGLE_DIR"
@@ -601,19 +645,12 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
         template+="$ENV_FIELD"
         env_var=$(printf "$ENV_VAR_TEMPLATE" "MYSQL_PASSWORD" "$MYSQL_PASSWORD")
         template+="$env_var"
-        
-        # Open ports for REST API server
-        template+="$PORTS_FIELD"
-        ports=$(printf "$PORTS_TEMPLATE" "4406" "4406")
-        template+="$ports"
-        ports=$(printf "$PORTS_TEMPLATE" "5406" "5406")
-        template+="$ports"        
 
         BASE_DOCKER_COMPOSE_FILE+="$template"
 
         NODE_ID_OFFSET=$(($((CONTAINER_NUM - 1)) * $API_SLOTS_PER_CONTAINER))
         for SLOT_NUM in $(seq $API_SLOTS_PER_CONTAINER); do
-            NODE_ID=$((195 + $NODE_ID_OFFSET + $(($SLOT_NUM - 1))))
+            NODE_ID=$(($FIRST_USEABLE_API_NODE_ID + $NODE_ID_OFFSET + $(($SLOT_NUM - 1))))
             # NodeId, NodeActive, ArbitrationRank, HostName
             SLOT=$(printf "$CONFIG_INI_API_TEMPLATE" "$NODE_ID" "1" "1" "$SERVICE_NAME")
             CONFIG_INI=$(printf "%s\n\n%s" "$CONFIG_INI" "$SLOT")

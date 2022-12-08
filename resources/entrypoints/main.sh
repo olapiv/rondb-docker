@@ -38,7 +38,10 @@ else
 	# this is an argument to the script itself and not the set
 	# command.
 
-	set -- "$@" --nodaemon
+	if [ "$1" != "rdrs" ]; then
+		set -- "$@" --nodaemon
+	fi
+	
 	if [ "$1" == "ndb_mgmd" ]; then
 		echo "[Entrypoint] Starting ndb_mgmd"
 		set -- "$@" -f $RONDB_DATA_DIR/config.ini --configdir=$RONDB_DATA_DIR/log
