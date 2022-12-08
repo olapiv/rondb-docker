@@ -57,7 +57,7 @@ fi
 RONDB_TARBALL_LOCAL_REMOTE=remote
 NUM_MGM_CONTAINERS=1
 NUM_MYSQL_CONTAINERS=0
-NUM_REST_API_NODES=0
+NUM_REST_API_CONTAINERS=0
 NUM_REST_CONTAINERS=0
 REPLICATION_FACTOR=1
 NODE_GROUPS=1
@@ -103,7 +103,7 @@ while [[ $# -gt 0 ]]; do
         shift # past value
         ;;
     -ra | --num-rest-api-containers)
-        NUM_REST_API_NODES="$2"
+        NUM_REST_API_CONTAINERS="$2"
         shift # past argument
         shift # past value
         ;;
@@ -442,8 +442,8 @@ MGM_CONNECTION_STRING=${MGM_CONNECTION_STRING%?}
 MGMD_IPS=${MGMD_IPS%?}
 
 # We're not bothering with inactive ndbds here
-NUM_DATA_NODES=$(($NODE_GROUPS * $REPLICATION_FACTOR))
-for CONTAINER_NUM in $(seq $NUM_DATA_NODES); do
+NUM_DATA_CONTAINERS=$(($NODE_GROUPS * $REPLICATION_FACTOR))
+for CONTAINER_NUM in $(seq $NUM_DATA_CONTAINERS); do
     NODE_ID=$CONTAINER_NUM
 
     template="$RONDB_DOCKER_COMPOSE_TEMPLATE"
