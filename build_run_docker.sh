@@ -385,6 +385,17 @@ DEPENDS_ON_TEMPLATE="
         %s:
           condition: service_healthy"
 
+# Make sure these memory boundaries are allowed in Docker settings!
+# To check whether they are being used use `docker stats`
+RESOURCES_TEMPLATE="
+      deploy:
+        resources:
+          limits:
+            cpus: '%s'
+            memory: %s
+          reservations:
+            memory: %s"
+
 # This is experimental to optimise performance
 RESOURCES_SNIPPET="
       ulimits:
@@ -424,14 +435,8 @@ for CONTAINER_NUM in $(seq $NUM_MGM_CONTAINERS); do
     command=$(printf "$COMMAND_TEMPLATE" "[\"ndb_mgmd\", \"--ndb-nodeid=$NODE_ID\", \"--initial\"]")
     template+="$command"
 
-    template+="
-      deploy:
-        resources:
-          limits:
-            cpus: '$MGMD_CPU_LIMIT'
-            memory: $MGMD_MEMORY_LIMIT
-          reservations:
-            memory: $MGMD_MEMORY_RESERVATION"
+    resources=$(printf "$RESOURCES_TEMPLATE" "$MGMD_CPU_LIMIT" "$MGMD_MEMORY_LIMIT" "$MGMD_MEMORY_RESERVATION")
+    template+="$resources"
 
     template+="$VOLUMES_FIELD"
     template+="$BIND_CONFIG_INI_TEMPLATE"
@@ -470,14 +475,8 @@ for CONTAINER_NUM in $(seq $NUM_DATA_CONTAINERS); do
     command=$(printf "$COMMAND_TEMPLATE" "[\"ndbmtd\", \"--ndb-nodeid=$NODE_ID\", \"--initial\", \"--ndb-connectstring=$MGM_CONNECTION_STRING\"]")
     template+="$command"
 
-    template+="
-      deploy:
-        resources:
-          limits:
-            cpus: '$NDBD_CPU_LIMIT'
-            memory: $NDBD_MEMORY_LIMIT
-          reservations:
-            memory: $NDBD_MEMORY_RESERVATION"
+    resources=$(printf "$RESOURCES_TEMPLATE" "$NDBD_CPU_LIMIT" "$NDBD_MEMORY_LIMIT" "$NDBD_MEMORY_RESERVATION")
+    template+="$resources"
 
     template+="$VOLUMES_FIELD"
 
@@ -510,14 +509,9 @@ if [ $NUM_MYSQL_CONTAINERS -gt 0 ]; then
 
         # Make sure these memory boundaries are allowed in Docker settings!
         # To check whether they are being used use `docker stats`
-        template+="
-      deploy:
-        resources:
-          limits:
-            cpus: '$MYSQLD_CPU_LIMIT'
-            memory: $MYSQLD_MEMORY_LIMIT
-          reservations:
-            memory: $MYSQLD_MEMORY_RESERVATION"
+
+        resources=$(printf "$RESOURCES_TEMPLATE" "$MYSQLD_CPU_LIMIT" "$MYSQLD_MEMORY_LIMIT" "$MYSQLD_MEMORY_RESERVATION")
+        template+="$resources"
 
         template+="$VOLUMES_FIELD"
         template+="$BIND_MY_CNF_TEMPLATE"
@@ -579,19 +573,10 @@ if [ $NUM_REST_API_CONTAINERS -gt 0 ]; then
         SERVICE_NAME="rest_$CONTAINER_NUM"
         template=$(echo "$template" | sed "s/<insert-service-name>/$SERVICE_NAME/g")
         command=$(printf "$COMMAND_TEMPLATE" "[\"rdrs\", \"-config=$REST_API_CONFIG_CONTAINER_PATH\"]")
-
         template+="$command"
 
-        # Make sure these memory boundaries are allowed in Docker settings!
-        # To check whether they are being used use `docker stats`
-        template+="
-      deploy:
-        resources:
-          limits:
-            cpus: '$REST_API_CPU_LIMIT'
-            memory: $REST_API_MEMORY_LIMIT
-          reservations:
-            memory: $REST_API_MEMORY_RESERVATION"
+        resources=$(printf "$RESOURCES_TEMPLATE" "$REST_API_CPU_LIMIT" "$REST_API_MEMORY_LIMIT" "$REST_API_MEMORY_RESERVATION")
+        template+="$resources"
 
         template+="$VOLUMES_FIELD"
         template+="$BIND_REST_API_JSON_TEMPLATE"
@@ -640,19 +625,10 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
             command=$(printf "$COMMAND_TEMPLATE" ">
           bash -c \"bench_run.sh --verbose --default-directory /home/mysql/benchmarks/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
-
         template+="$command"
 
-        # Make sure these memory boundaries are allowed in Docker settings!
-        # To check whether they are being used use `docker stats`
-        template+="
-      deploy:
-        resources:
-          limits:
-            cpus: '$BENCH_CPU_LIMIT'
-            memory: $BENCH_MEMORY_LIMIT
-          reservations:
-            memory: $BENCH_MEMORY_RESERVATION"
+        resources=$(printf "$RESOURCES_TEMPLATE" "$BENCH_CPU_LIMIT" "$BENCH_MEMORY_LIMIT" "$BENCH_MEMORY_RESERVATION")
+        template+="$resources"
 
         template+="$VOLUMES_FIELD"
         if [ "$NUM_MYSQL_CONTAINERS" -gt 0 ]; then
