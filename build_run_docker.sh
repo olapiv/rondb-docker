@@ -169,6 +169,9 @@ elif [ $NODE_GROUPS -lt 1 ]; then
 elif [ -z $RONDB_TARBALL_URI ]; then
     echo "The parameter --rondb-tarball-uri is not optional"
     exit 1
+elif [ $NUM_REST_API_CONTAINERS -gt 0 -a $NUM_MYSQL_CONTAINERS -lt 1 ]; then
+    echo "REST API servers require a MySQLd instance"
+    exit 1
 fi
 
 if [ ! -z $RUN_BENCHMARK ]; then
@@ -311,6 +314,16 @@ ENV_FIELD="
 PORTS_FIELD="
       ports:"
 
+DEPENDS_ON_FIELD="
+      depends_on:"
+
+HEALTHCHECK_TEMPLATE="
+      healthcheck:
+        test: %s
+        interval: %ss
+        timeout: %ss
+        retries: %s"
+
 # We add volumes to the data dir for debugging purposes
 ENV_VAR_TEMPLATE="
       - %s=%s"
@@ -367,6 +380,10 @@ VOLUME_BENCHMARKING_TEMPLATE="
 
 COMMAND_TEMPLATE="
       command: %s"
+
+DEPENDS_ON_TEMPLATE="
+        %s:
+          condition: service_healthy"
 
 # This is experimental to optimise performance
 RESOURCES_SNIPPET="
@@ -533,6 +550,9 @@ if [ $NUM_MYSQL_CONTAINERS -gt 0 ]; then
             template+="$env_var"
         fi
 
+        healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "mysqladmin ping -uroot" "10" "2" "5")
+        template+="$healthcheck"
+
         BASE_DOCKER_COMPOSE_FILE+="$template"
 
         NODE_ID_OFFSET=$(($((CONTAINER_NUM - 1)) * $MYSQLD_SLOTS_PER_CONTAINER))
@@ -583,6 +603,10 @@ if [ $NUM_REST_API_CONTAINERS -gt 0 ]; then
         ports=$(printf "$PORTS_TEMPLATE" "5406" "5406")
         template+="$ports"
 
+        template+="$DEPENDS_ON_FIELD"
+        depends_on=$(printf "$DEPENDS_ON_TEMPLATE" "mysqld_1")
+        template+="$depends_on"
+
         BASE_DOCKER_COMPOSE_FILE+="$template"
 
         NODE_ID_OFFSET=$(($((CONTAINER_NUM - 1)) * $API_SLOTS_PER_CONTAINER))
@@ -614,9 +638,7 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
             # Use the ndb_waiter to wait until RonDB has started before running benchmark
             # Added extra sleep for MySQLds; may have to increase this
             command=$(printf "$COMMAND_TEMPLATE" ">
-          bash -c \"ndb_waiter --ndb-connectstring=$MGM_CONNECTION_STRING &&
-                    sleep 25 &&
-                    bench_run.sh --verbose --default-directory /home/mysql/benchmarks/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
+          bash -c \"bench_run.sh --verbose --default-directory /home/mysql/benchmarks/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
 
         template+="$command"
@@ -645,6 +667,10 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
         template+="$ENV_FIELD"
         env_var=$(printf "$ENV_VAR_TEMPLATE" "MYSQL_PASSWORD" "$MYSQL_PASSWORD")
         template+="$env_var"
+
+        template+="$DEPENDS_ON_FIELD"
+        depends_on=$(printf "$DEPENDS_ON_TEMPLATE" "mysqld_1")
+        template+="$depends_on"
 
         BASE_DOCKER_COMPOSE_FILE+="$template"
 
