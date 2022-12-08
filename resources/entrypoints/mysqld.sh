@@ -151,8 +151,7 @@ else
     echo '[Entrypoint] Not creating custom user. MYSQL_USER and MYSQL_PASSWORD must be specified to do so.'
 fi
 
-# TODO: Mount this via Docker
-for f in /docker-entrypoint-initdb.d/*; do
+for f in ./docker_entrypoints/rondb_standalone/init_scripts/*; do
     case "$f" in
     *.sh)
         echo "[Entrypoint] running $f"
@@ -160,7 +159,7 @@ for f in /docker-entrypoint-initdb.d/*; do
         ;;
     *.sql)
         echo "[Entrypoint] running $f"
-        "${mysql[@]}" <"$f" && echo
+        cat $f | mysql
         ;;
     *) echo "[Entrypoint] ignoring $f" ;;
     esac
