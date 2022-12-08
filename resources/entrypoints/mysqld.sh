@@ -135,6 +135,7 @@ DUMMY_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
 
 # Benchmarking table; all other tables will be created by the benchmakrs themselves
 echo "CREATE DATABASE IF NOT EXISTS \`dbt2\` ;" | mysql
+echo "CREATE DATABASE IF NOT EXISTS \`ycsb\` ;" | mysql
 
 if [ "$MYSQL_USER" ]; then
     echo "CREATE USER '"$MYSQL_USER"'@'%' IDENTIFIED BY '"$MYSQL_PASSWORD"' ;" | mysql
@@ -145,7 +146,7 @@ if [ "$MYSQL_USER" ]; then
     echo "GRANT ALL PRIVILEGES ON \`sysbench%\`.* TO '$MYSQL_USER'@'%' ;" | mysql
     echo "GRANT ALL PRIVILEGES ON \`dbt%\`.* TO '$MYSQL_USER'@'%' ;" | mysql
     echo "GRANT ALL PRIVILEGES ON \`sbtest%\`.* TO '$MYSQL_USER'@'%' ;" | mysql
-
+    echo "GRANT ALL PRIVILEGES ON \`ycsb%\`.* TO '$MYSQL_USER'@'%' ;" | mysql
 else
     echo '[Entrypoint] Not creating custom user. MYSQL_USER and MYSQL_PASSWORD must be specified to do so.'
 fi
