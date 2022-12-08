@@ -26,11 +26,12 @@ Commands to run:
   --rondb-tarball-is-local \
   --rondb-tarball-uri ./rondb-21.04.9-linux-glibc2.35-arm64_v8.tar.gz \
   --rondb-version 21.04.9 \
-  --num-mgm-nodes 1 \
+  --num-mgm-containers 1 \
   --node-groups 1 \
   --replication-factor 2 \
-  --num-mysql-nodes 1 \
-  --num-api-nodes 1
+  --num-mysql-containers 1 \
+  --num-rest-api-containers 1 \
+  --num-benchmarking-containers 1
 
 # Build cross-platform image (linux/arm64 here)
 docker buildx build . --platform=linux/arm64 -t rondb-standalone:21.04.6 \
@@ -78,7 +79,7 @@ The Docker images come with a set of benchmarks pre-installed. To run any of the
 ./build_run_docker.sh \
   --rondb-tarball-is-local \
   -ruri ./rondb-21.04.9-linux-glibc2.35-arm64_v8.tar.gz \
-  -v 21.04.9 -m 1 -g 1 -r 2 -my 1 -a 1 \
+  -v 21.04.9 -m 1 -g 1 -r 2 -my 1 -bc 1 \
   --run-benchmark <sysbench_single, sysbench_multi, dbt2_single, dbt2_multi>
 ```
 
