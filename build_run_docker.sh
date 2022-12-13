@@ -371,6 +371,11 @@ BIND_REST_API_JSON_TEMPLATE="
         source: $REST_API_JSON_FILEPATH
         target: $REST_API_CONFIG_CONTAINER_PATH"
 
+BIND_YCSB_DIR="
+      - type: bind
+        source: /Users/vincent/Codes/hopsworks/YCSB
+        target: /home/mysql/benchmarks/YCSB"
+
 # We add volumes to the data dir for debugging purposes
 VOLUME_DATA_DIR_TEMPLATE="
       - %s:/srv/hops/mysql-cluster/%s"
@@ -631,6 +636,7 @@ if [ $NUM_BENCH_CONTAINERS -gt 0 ]; then
         template+="$resources"
 
         template+="$VOLUMES_FIELD"
+        template+="$BIND_YCSB_DIR"
         if [ "$NUM_MYSQL_CONTAINERS" -gt 0 ]; then
             template+="$BIND_SYS_SINGLE_DIR"
             template+="$BIND_DBT2_SINGLE_DIR"
