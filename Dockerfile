@@ -22,10 +22,12 @@ RUN --mount=type=cache,target=/var/cache/apt,id=ubuntu22-apt \
     --mount=type=cache,target=/var/lib/apt/lists,id=ubuntu22-apt-lists \
     apt-get update -y \
     && apt-get install -y wget tar gzip \
+    libaio1 libaio-dev \
     libncurses5 libnuma-dev \
     bc
     # bc is required by dbt2
     # libncurses5 & libnuma-dev are required for x86 only
+    # libaio is for dynamic libraries in >=22.10
 
 # Creating a cache dir for downloads to avoid redownloading
 ENV DOWNLOADS_CACHE_DIR=/tmp/downloads
