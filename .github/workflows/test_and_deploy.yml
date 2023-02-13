@@ -65,7 +65,7 @@ jobs:
       # and skipping the execution of the cluster with this image; We can probably assume that
       # a cluster will be run on ARM64 on a regular basis during development.
       - name: Build ARM64 images
-        if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
+        # if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
         run: |
           docker buildx build . \
               --tag rondb-standalone:$RONDB_VERSION \
