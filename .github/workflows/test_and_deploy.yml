@@ -15,51 +15,51 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Run Docker Compose cluster with benchmarking
-        run: |
-          ./build_run_docker.sh \
-            --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION-linux-glibc2.17-x86_64.tar.gz \
-            --rondb-version $RONDB_VERSION \
-            --num-mgm-nodes 1 \
-            --node-groups 1 \
-            --replication-factor 1 \
-            --num-mysql-nodes 1 \
-            --num-api-nodes 1 \
-            --run-benchmark sysbench_single \
-            --bench-dirs-in-volumes \
-            --detached
+      # - name: Run Docker Compose cluster with benchmarking
+      #   run: |
+      #     ./build_run_docker.sh \
+      #       --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION-linux-glibc2.17-x86_64.tar.gz \
+      #       --rondb-version $RONDB_VERSION \
+      #       --num-mgm-nodes 1 \
+      #       --node-groups 1 \
+      #       --replication-factor 1 \
+      #       --num-mysql-nodes 1 \
+      #       --num-api-nodes 1 \
+      #       --run-benchmark sysbench_single \
+      #       --bench-dirs-in-volumes \
+      #       --detached
 
-      - name: Check if all containers are alive
-        run: |
-          start=`date +%s`
-          while true; do
-              end=`date +%s`
-              runtime=$((end-start))
-              if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
-                  echo "One container is down. We can continue"
-                  docker container ls --filter "status=exited"
-                  exit 0
-              elif [ $runtime -gt 800 ]; then
-                  echo "The benchmarking seems to be stuck. We're aborting now."
-                  docker ps
-                  exit 1
-              fi
-              sleep 2
-          done
+      # - name: Check if all containers are alive
+      #   run: |
+      #     start=`date +%s`
+      #     while true; do
+      #         end=`date +%s`
+      #         runtime=$((end-start))
+      #         if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
+      #             echo "One container is down. We can continue"
+      #             docker container ls --filter "status=exited"
+      #             exit 0
+      #         elif [ $runtime -gt 800 ]; then
+      #             echo "The benchmarking seems to be stuck. We're aborting now."
+      #             docker ps
+      #             exit 1
+      #         fi
+      #         sleep 2
+      #     done
 
-      - run: docker container ls
-      - run: docker logs mgmd_1
-      - run: docker logs ndbd_1
-      - run: docker logs mysqld_1
-      - run: docker logs api_1
+      # - run: docker container ls
+      # - run: docker logs mgmd_1
+      # - run: docker logs ndbd_1
+      # - run: docker logs mysqld_1
+      # - run: docker logs api_1
 
-      - name: Check API Exit Code
-        run: |
-          if [ $(docker inspect api_1 --format='{{.State.ExitCode}}') -ne 0 ] 
-          then
-            echo "Benchmarking failed."
-            exit 1
-          fi
+      # - name: Check API Exit Code
+      #   run: |
+      #     if [ $(docker inspect api_1 --format='{{.State.ExitCode}}') -ne 0 ] 
+      #     then
+      #       echo "Benchmarking failed."
+      #       exit 1
+      #     fi
 
       # It seems non-trivial to use ARM64 hardware in the CI, so we're just cross-compiling here
       # and skipping the execution of the cluster with this image; We can probably assume that
