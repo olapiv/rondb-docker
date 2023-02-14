@@ -9,9 +9,9 @@ echo "[Entrypoint] RonDB Docker Image"
 # write in the mounted volumes, we add mysql to a group with the same GID as the
 # host user's group.
 if [ "$(getent group "$HOST_GROUP_ID")" ]; then
-	echo "group $HOST_GROUP_ID exists."
+	echo "[Entrypoint] group $HOST_GROUP_ID exists."
 else
-	echo "group $HOST_GROUP_ID does not exist."
+	echo "[Entrypoint] group $HOST_GROUP_ID does not exist."
 	addgroup --gid "$HOST_GROUP_ID" host_group_dummy
 fi
 

@@ -138,7 +138,7 @@ echo "CREATE DATABASE IF NOT EXISTS \`dbt2\` ;" | mysql
 
 # shellcheck disable=SC2153
 if [ "$MYSQL_USER" ]; then
-    echo "Running this command now:"
+    echo "[entrypoints/mysqld.sh] Running this command now:"
     echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;"
 
     echo "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD' ;" | mysql

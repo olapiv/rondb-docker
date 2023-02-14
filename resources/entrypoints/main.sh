@@ -67,7 +67,7 @@ else
 		# them. As a workaround, this is a very hacky background process
 		# that every 5 seconds makes sure that the group's permissions
 		# equal the owner's.
-		while true; do
+		ensure-group-permissions() {
 			# Find all files owned by the current user, print their
 			# modestring and path, null-terminated.
 			find /srv/hops/mysql-cluster -user "$USER" -printf '%m %p\0' |
@@ -82,11 +82,23 @@ else
 			# Make sure the process does not exit due to some
 			# failure.
 			true
+		}
+		while true; do
+			ensure-group-permissions
 			sleep 5
 		done &
 
+		# If ndbmtd exits within 5 seconds of creating a file, we need
+		# to make sure to set group permissions correctly.
+		trap ensure-group-permissions EXIT
+
 		echo "[entrypoints/main.sh] Starting ndbmtd"
 		# Command for more verbosity with ndbmtds: `set -- "$@" --verbose=TRUE`
+
+		# We have to run ndbmtd as a child process, since trap and exec
+		# do not play nice.
+		"$@"
+		exit $?
 	elif [ "$1" == "ndb_mgm" ]; then
 		echo "[entrypoints/main.sh] Starting ndb_mgm"
 	fi
