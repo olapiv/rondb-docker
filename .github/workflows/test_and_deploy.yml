@@ -61,6 +61,14 @@ jobs:
       #       exit 1
       #     fi
 
+      # Add support for more platforms with QEMU (optional)
+      # https://github.com/docker/setup-qemu-action
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       # It seems non-trivial to use ARM64 hardware in the CI, so we're just cross-compiling here
       # and skipping the execution of the cluster with this image; We can probably assume that
       # a cluster will be run on ARM64 on a regular basis during development.
