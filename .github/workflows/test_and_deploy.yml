@@ -104,7 +104,6 @@ jobs:
               --build-arg RONDB_VERSION=$RONDB_VERSION \
               --build-arg RONDB_TARBALL_LOCAL_REMOTE=remote \
               --build-arg RONDB_TARBALL_URI=https://repo.hops.works/dev/vincent.l/rondb-22.10.1-linux-glibc2.35-arm64_v8.tar.gz \
-              --no-cache
 
       - name: Push ARM64 image to Dockerhub
         run: |
