@@ -15,51 +15,76 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # - name: Run Docker Compose cluster with benchmarking
-      #   run: |
-      #     ./build_run_docker.sh \
-      #       --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION-linux-glibc2.17-x86_64.tar.gz \
-      #       --rondb-version $RONDB_VERSION \
-      #       --num-mgm-nodes 1 \
-      #       --node-groups 1 \
-      #       --replication-factor 1 \
-      #       --num-mysql-nodes 1 \
-      #       --num-api-nodes 1 \
-      #       --run-benchmark sysbench_single \
-      #       --bench-dirs-in-volumes \
-      #       --detached
+      - name: Run Docker Compose cluster with benchmarking
+        run: |
+          ./build_run_docker.sh \
+            --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION-linux-glibc2.17-x86_64.tar.gz \
+            --rondb-version $RONDB_VERSION \
+            --num-mgm-nodes 1 \
+            --node-groups 1 \
+            --replication-factor 1 \
+            --num-mysql-nodes 1 \
+            --num-api-nodes 1 \
+            --run-benchmark sysbench_single \
+            --bench-dirs-in-volumes \
+            --detached
 
-      # - name: Check if all containers are alive
-      #   run: |
-      #     start=`date +%s`
-      #     while true; do
-      #         end=`date +%s`
-      #         runtime=$((end-start))
-      #         if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
-      #             echo "One container is down. We can continue"
-      #             docker container ls --filter "status=exited"
-      #             exit 0
-      #         elif [ $runtime -gt 800 ]; then
-      #             echo "The benchmarking seems to be stuck. We're aborting now."
-      #             docker ps
-      #             exit 1
-      #         fi
-      #         sleep 2
-      #     done
+      - name: Check if all containers are alive
+        run: |
+          start=`date +%s`
+          while true; do
+              end=`date +%s`
+              runtime=$((end-start))
+              if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
+                  echo "One container is down. We can continue"
+                  docker container ls --filter "status=exited"
+                  exit 0
+              elif [ $runtime -gt 800 ]; then
+                  echo "The benchmarking seems to be stuck. We're aborting now."
+                  docker ps
+                  exit 1
+              fi
+              sleep 2
+          done
 
-      # - run: docker container ls
-      # - run: docker logs mgmd_1
-      # - run: docker logs ndbd_1
-      # - run: docker logs mysqld_1
-      # - run: docker logs api_1
+      - run: docker container ls
+      - run: docker logs mgmd_1
+      - run: docker logs ndbd_1
+      - run: docker logs mysqld_1
+      - run: docker logs api_1
 
-      # - name: Check API Exit Code
-      #   run: |
-      #     if [ $(docker inspect api_1 --format='{{.State.ExitCode}}') -ne 0 ] 
-      #     then
-      #       echo "Benchmarking failed."
-      #       exit 1
-      #     fi
+      - name: Check API Exit Code
+        run: |
+          if [ $(docker inspect api_1 --format='{{.State.ExitCode}}') -ne 0 ] 
+          then
+            echo "Benchmarking failed."
+            exit 1
+          fi
+
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
+        with:
+          username: hopsworks
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push AMD64 image to Dockerhub
+        if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
+        run: |
+          docker tag rondb-standalone:$RONDB_VERSION hopsworks/rondb-standalone:$RONDB_VERSION
+          docker push hopsworks/rondb-standalone:$RONDB_VERSION
+
+  build-and-push-ARM64:
+    runs-on: ubuntu-latest
+    if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Dockerhub
         uses: docker/login-action@v2
@@ -67,19 +92,10 @@ jobs:
           username: hopsworks
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Add support for more platforms with QEMU (optional)
-      # https://github.com/docker/setup-qemu-action
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # It seems non-trivial to use ARM64 hardware in the CI, so we're just cross-compiling here
-      # and skipping the execution of the cluster with this image; We can probably assume that
-      # a cluster will be run on ARM64 on a regular basis during development.
+      # We're skipping the benchmarking on ARM64 as we assume this will be run on a regular basis
+      # during development. ARM64 images are only for development anyways. It is more important to add
+      # all types of benchmarking to the tests.
       - name: Build ARM64 images
-        # if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
         run: |
           docker buildx build . \
               --tag rondb-standalone:$RONDB_VERSION \
@@ -89,13 +105,7 @@ jobs:
               --build-arg RONDB_TARBALL_URI=https://repo.hops.works/dev/vincent.l/rondb-22.10.1-linux-glibc2.35-arm64_v8.tar.gz \
               --no-cache
 
-      - name: Login to Dockerhub registry
-        if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
-        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login --username hopsworks --password-stdin
-
-      # TODO: Make sure that this tags the images for both platforms
-      - name: Push all images to Dockerhub
-        if: github.repository == 'logicalclocks/rondb-docker' && github.event.pull_request.merged == true
+      - name: Push ARM64 image to Dockerhub
         run: |
           docker tag rondb-standalone:$RONDB_VERSION hopsworks/rondb-standalone:$RONDB_VERSION
           docker push hopsworks/rondb-standalone:$RONDB_VERSION
