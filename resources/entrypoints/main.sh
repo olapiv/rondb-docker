@@ -78,7 +78,7 @@ else
 			sed -zr '/^(.)\1/d; s/^... //;' |
 			# xargs: Run chmod with an efficient number of file
 			# arguments to correct the group's permissions.
-			xargs -r0 chmod -cf g=u ||
+			xargs -r0 chmod -f g=u ||
 			# Make sure the process does not exit due to some
 			# failure.
 			true

@@ -598,12 +598,16 @@ if [ "$NUM_API_NODES" -gt 0 ]; then
         # If we are using volumes for the benchmarking directories, we have to mount these files single-handedly.
         # They will then also be available inside the volumes.
         if [ "$VOLUME_TYPE" == "docker" ]; then
-            add_file_to_template "$DBT2_CONF_SINGLE_FILEPATH" "$BENCH_DIR/dbt2_single/dbt2_run_1.conf"
-            add_file_to_template "$DBT2_CONF_MULTI_FILEPATH" "$BENCH_DIR/dbt2_multi/dbt2_run_1.conf"
-            add_file_to_template "$AUTOBENCH_SYS_SINGLE_FILEPATH" "$BENCH_DIR/sysbench_single/autobench.conf"
-            add_file_to_template "$AUTOBENCH_SYS_MULTI_FILEPATH" "$BENCH_DIR/sysbench_multi/autobench.conf"
-            add_file_to_template "$AUTOBENCH_DBT2_SINGLE_FILEPATH" "$BENCH_DIR/dbt2_single/autobench.conf"
-            add_file_to_template "$AUTOBENCH_DBT2_MULTI_FILEPATH" "$BENCH_DIR/dbt2_multi/autobench.conf"
+            if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
+                add_file_to_template "$DBT2_CONF_SINGLE_FILEPATH" "$BENCH_DIR/dbt2_single/dbt2_run_1.conf"
+                add_file_to_template "$AUTOBENCH_SYS_SINGLE_FILEPATH" "$BENCH_DIR/sysbench_single/autobench.conf"
+                add_file_to_template "$AUTOBENCH_DBT2_SINGLE_FILEPATH" "$BENCH_DIR/dbt2_single/autobench.conf"
+            fi
+            if [ "$NUM_MYSQL_NODES" -gt 1 ]; then
+                add_file_to_template "$DBT2_CONF_MULTI_FILEPATH" "$BENCH_DIR/dbt2_multi/dbt2_run_1.conf"
+                add_file_to_template "$AUTOBENCH_SYS_MULTI_FILEPATH" "$BENCH_DIR/sysbench_multi/autobench.conf"
+                add_file_to_template "$AUTOBENCH_DBT2_MULTI_FILEPATH" "$BENCH_DIR/dbt2_multi/autobench.conf"
+            fi
         fi
 
         template+="$ENV_FIELD"
