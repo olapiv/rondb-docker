@@ -27,8 +27,8 @@ jobs:
             --num-mysql-nodes 1 \
             --num-api-nodes 1 \
             --run-benchmark sysbench_single \
-            --bench-dirs-in-volumes \
             --detached
+
       - name: Check if all containers are alive
         run: |
           start=`date +%s`
