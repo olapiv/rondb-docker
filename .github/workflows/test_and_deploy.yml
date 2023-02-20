@@ -126,8 +126,29 @@ jobs:
               --output type=registry \
               --build-arg RONDB_VERSION=$RONDB_VERSION_LTS \
               --build-arg RONDB_TARBALL_LOCAL_REMOTE=remote \
-              --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_LTS-linux-glibc2.35-arm64_v8.tar.gz
-      
+              --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_LTS-linux-glibc2.35-arm64_v8.tar.gz \
+              --cache-to type=registry,ref=hopsworks/rondb-standalone-cache,mode=max \
+              --cache-from type=registry,ref=hopsworks/rondb-standalone-cache,mode=max
+
+  build-and-push-ARM64-two:
+    runs-on: ubuntu-latest
+    # if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+    needs: [build-and-push-ARM64]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        with:
+          username: hopsworks
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build and push ARM64 image for RONDB_VERSION_STABLE
         run: |
           docker buildx build . \
@@ -137,4 +158,6 @@ jobs:
               --output type=registry \
               --build-arg RONDB_VERSION=$RONDB_VERSION_STABLE \
               --build-arg RONDB_TARBALL_LOCAL_REMOTE=remote \
-              --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.35-arm64_v8.tar.gz
+              --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.35-arm64_v8.tar.gz \
+              --cache-to type=registry,ref=hopsworks/rondb-standalone-cache,mode=max \
+              --cache-from type=registry,ref=hopsworks/rondb-standalone-cache,mode=max
