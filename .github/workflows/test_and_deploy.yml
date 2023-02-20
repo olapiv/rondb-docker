@@ -9,92 +9,96 @@ on:
 env:
   RONDB_VERSION_LTS: 21.04.10
   RONDB_VERSION_STABLE: 22.10.1
+  ARM_IMAGE_NAME: rondb-standalone-arm64
+  AMD_IMAGE_NAME: rondb-standalone-amd64
+  # ARM_CACHE_IMAGE_NAME: rondb-standalone-cache-arm64
+  # AMD_CACHE_IMAGE_NAME: rondb-standalone-cache-amd64
 
 jobs:
-  # integration-test-and-package:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
+  integration-test-and-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
 
-  #     - name: Build and run Docker Compose cluster with benchmarking for RONDB_VERSION_LTS
-  #       run: |
-  #         ./build_run_docker.sh \
-  #           --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION_LTS-linux-glibc2.17-x86_64.tar.gz \
-  #           --rondb-version $RONDB_VERSION_LTS \
-  #           --num-mgm-nodes 1 \
-  #           --node-groups 1 \
-  #           --replication-factor 1 \
-  #           --num-mysql-nodes 1 \
-  #           --num-api-nodes 1 \
-  #           --run-benchmark sysbench_single \
-  #           --detached
+      - name: Build and run Docker Compose cluster with benchmarking for RONDB_VERSION_LTS
+        run: |
+          ./build_run_docker.sh \
+            --rondb-tarball-uri https://repo.hops.works/master/rondb-$RONDB_VERSION_LTS-linux-glibc2.17-x86_64.tar.gz \
+            --rondb-version $RONDB_VERSION_LTS \
+            --num-mgm-nodes 1 \
+            --node-groups 1 \
+            --replication-factor 1 \
+            --num-mysql-nodes 1 \
+            --num-api-nodes 1 \
+            --run-benchmark sysbench_single \
+            --detached
 
-  #     - name: Wait for one container exit or timeout
-  #       run: |
-  #         start=`date +%s`
-  #         while true; do
-  #             end=`date +%s`
-  #             runtime=$((end-start))
-  #             if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
-  #                 echo "One container is down. We can continue"
-  #                 docker container ls --filter "status=exited"
-  #                 exit 0
-  #             elif [ $runtime -gt 800 ]; then
-  #                 echo "The benchmarking seems to be stuck. We're aborting now."
-  #                 docker ps
-  #                 exit 1
-  #             fi
-  #             sleep 2
-  #         done
+      - name: Wait for one container exit or timeout
+        run: |
+          start=`date +%s`
+          while true; do
+              end=`date +%s`
+              runtime=$((end-start))
+              if [ $( docker container ls --filter "status=exited" | grep rondb | wc -l ) -gt 0 ]; then
+                  echo "One container is down. We can continue"
+                  docker container ls --filter "status=exited"
+                  exit 0
+              elif [ $runtime -gt 800 ]; then
+                  echo "The benchmarking seems to be stuck. We're aborting now."
+                  docker ps
+                  exit 1
+              fi
+              sleep 2
+          done
 
-  #     - run: docker container ls
-  #     - run: docker logs mgmd_1
-  #     - run: docker logs ndbd_1
-  #     - run: docker logs mysqld_1
-  #     - run: docker logs api_1
+      - run: docker container ls
+      - run: docker logs mgmd_1
+      - run: docker logs ndbd_1
+      - run: docker logs mysqld_1
+      - run: docker logs api_1
 
-  #     # At this point we only know that one container has exited. We want to
-  #     # check whether the API container has exited with exit code 0. We need
-  #     # both status and exit code to do so, since docker reports exit code 0
-  #     # for running containers.
-  #     - name: Check API Exit Code
-  #       run: |
-  #         if [ "$(docker inspect api_1 --format='{{.State.Status}}')" != "exited" ]
-  #         then
-  #           echo "Some container other than api_1 exited unexpectedly."
-  #           docker ps -a
-  #           exit 1
-  #         elif [ "$(docker inspect api_1 --format='{{.State.ExitCode}}')" != "0" ]
-  #         then
-  #           echo "Benchmarking failed."
-  #           exit 1
-  #         fi
+      # At this point we only know that one container has exited. We want to
+      # check whether the API container has exited with exit code 0. We need
+      # both status and exit code to do so, since docker reports exit code 0
+      # for running containers.
+      - name: Check API Exit Code
+        run: |
+          if [ "$(docker inspect api_1 --format='{{.State.Status}}')" != "exited" ]
+          then
+            echo "Some container other than api_1 exited unexpectedly."
+            docker ps -a
+            exit 1
+          elif [ "$(docker inspect api_1 --format='{{.State.ExitCode}}')" != "0" ]
+          then
+            echo "Benchmarking failed."
+            exit 1
+          fi
 
-  #     - name: Login to Dockerhub
-  #       uses: docker/login-action@v2
-  #       if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
-  #       with:
-  #         username: hopsworks
-  #         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+        with:
+          username: hopsworks
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-  #     - name: Build AMD64 image for RONDB_VERSION_STABLE
-  #       if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
-  #       run: |
-  #         docker buildx build . \
-  #             --tag rondb-standalone:$RONDB_VERSION_STABLE \
-  #             --build-arg RONDB_VERSION=$RONDB_VERSION_STABLE \
-  #             --build-arg RONDB_TARBALL_LOCAL_REMOTE=remote \
-  #             --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.17-x86_64.tar.gz
-      
-  #     - name: Push AMD64 images to Dockerhub
-  #       if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
-  #       run: |
-  #         docker tag rondb-standalone:$RONDB_VERSION_LTS hopsworks/rondb-standalone:$RONDB_VERSION_LTS
-  #         docker tag rondb-standalone:$RONDB_VERSION_STABLE hopsworks/rondb-standalone:$RONDB_VERSION_STABLE
-  #         docker tag rondb-standalone:$RONDB_VERSION_STABLE hopsworks/rondb-standalone:latest
-  #         docker push hopsworks/rondb-standalone:$RONDB_VERSION_LTS
-  #         docker push hopsworks/rondb-standalone:$RONDB_VERSION_STABLE
-  #         docker push hopsworks/rondb-standalone:latest
+      - name: Build AMD64 image for RONDB_VERSION_STABLE
+        if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+        run: |
+          docker buildx build . \
+              --tag rondb-standalone:$RONDB_VERSION_STABLE \
+              --build-arg RONDB_VERSION=$RONDB_VERSION_STABLE \
+              --build-arg RONDB_TARBALL_LOCAL_REMOTE=remote \
+              --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.17-x86_64.tar.gz
+
+      - name: Push AMD64 images to Dockerhub
+        if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+        run: |
+          docker tag rondb-standalone:$RONDB_VERSION_LTS hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_LTS
+          docker tag rondb-standalone:$RONDB_VERSION_STABLE hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_STABLE
+          docker tag rondb-standalone:$RONDB_VERSION_STABLE hopsworks/$AMD_IMAGE_NAME:latest
+          docker push hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_LTS
+          docker push hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_STABLE
+          docker push hopsworks/$AMD_IMAGE_NAME:latest
 
   build-and-push-ARM64:
     runs-on: ubuntu-latest
@@ -121,7 +125,7 @@ jobs:
       - name: Build and push ARM64 image for RONDB_VERSION_LTS
         run: |
           docker buildx build . \
-              --tag hopsworks/rondb-standalone:$RONDB_VERSION_LTS \
+              --tag hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_LTS \
               --platform=linux/arm64 \
               --output type=registry \
               --build-arg RONDB_VERSION=$RONDB_VERSION_LTS \
@@ -130,30 +134,11 @@ jobs:
               --cache-to type=registry,ref=hopsworks/rondb-standalone-cache,mode=max \
               --cache-from type=registry,ref=hopsworks/rondb-standalone-cache,mode=max
 
-  build-and-push-ARM64-two:
-    runs-on: ubuntu-latest
-    # if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
-    needs: [build-and-push-ARM64]
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Login to Dockerhub
-        uses: docker/login-action@v2
-        with:
-          username: hopsworks
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build and push ARM64 image for RONDB_VERSION_STABLE
         run: |
           docker buildx build . \
-              --tag hopsworks/rondb-standalone:$RONDB_VERSION_STABLE \
-              --tag hopsworks/rondb-standalone:latest \
+              --tag hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_STABLE \
+              --tag hopsworks/$ARM_IMAGE_NAME:latest \
               --platform=linux/arm64 \
               --output type=registry \
               --build-arg RONDB_VERSION=$RONDB_VERSION_STABLE \
@@ -161,3 +146,34 @@ jobs:
               --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.35-arm64_v8.tar.gz \
               --cache-to type=registry,ref=hopsworks/rondb-standalone-cache,mode=max \
               --cache-from type=registry,ref=hopsworks/rondb-standalone-cache,mode=max
+
+  create-manifests:
+    runs-on: ubuntu-latest
+    # if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+    # needs: [build-and-push-ARM64]
+    steps:
+      - name: Create multi-platform manifest for RONDB_VERSION_LTS
+        run: |
+          docker manifest create hopsworks/rondb-standalone:$RONDB_VERSION_LTS \
+            hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_LTS \
+            hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_LTS
+
+          docker manifest annotate hopsworks/rondb-standalone:$RONDB_VERSION_LTS \
+              hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_LTS --arch arm64
+          docker manifest annotate hopsworks/rondb-standalone:$RONDB_VERSION_LTS \
+              hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_LTS --arch amd64
+
+          docker manifest push hopsworks/rondb-standalone:$RONDB_VERSION_LTS
+
+      - name: Create multi-platform manifest for RONDB_VERSION_STABLE
+        run: |
+          docker manifest create hopsworks/rondb-standalone:$RONDB_VERSION_STABLE \
+            hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_STABLE \
+            hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_STABLE
+
+          docker manifest annotate hopsworks/rondb-standalone:$RONDB_VERSION_STABLE \
+              hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_STABLE --arch arm64
+          docker manifest annotate hopsworks/rondb-standalone:$RONDB_VERSION_STABLE \
+              hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_STABLE --arch amd64
+
+          docker manifest push hopsworks/rondb-standalone:$RONDB_VERSION_STABLE
