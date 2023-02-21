@@ -143,3 +143,28 @@ jobs:
               --build-arg RONDB_TARBALL_URI=https://repo.hops.works/master/rondb-$RONDB_VERSION_STABLE-linux-glibc2.35-arm64_v8.tar.gz \
               --cache-to type=registry,ref=hopsworks/rondb-standalone-cache,mode=max \
               --cache-from type=registry,ref=hopsworks/rondb-standalone-cache,mode=max
+
+  build-and-push-cross-platform-image:
+    runs-on: ubuntu-latest
+    # if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        with:
+          username: hopsworks
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create and push multi-platform image
+        run: |
+          docker buildx imagetools create -t hopsworks/rondb-standalone:$RONDB_VERSION_LTS \
+            hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_LTS \
+            hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_LTS
+          docker buildx imagetools create -t hopsworks/rondb-standalone:$RONDB_VERSION_STABLE \
+            hopsworks/$AMD_IMAGE_NAME:$RONDB_VERSION_STABLE \
+            hopsworks/$ARM_IMAGE_NAME:$RONDB_VERSION_STABLE
+          docker buildx imagetools create -t hopsworks/rondb-standalone:latest \
+            hopsworks/$AMD_IMAGE_NAME:latest \
+            hopsworks/$ARM_IMAGE_NAME:latest
