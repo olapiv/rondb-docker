@@ -147,6 +147,7 @@ jobs:
   build-and-push-cross-platform-image:
     runs-on: ubuntu-latest
     # if: github.repository == 'logicalclocks/rondb-docker' && github.ref_name == 'main'
+    needs: [integration-test-and-package, build-and-push-ARM64]
     steps:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
