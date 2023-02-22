@@ -642,8 +642,6 @@ if [ "$NUM_API_NODES" -gt 0 ]; then
                 GENERATE_DBT2_DATA_FLAG="--generate-dbt2-data"
             fi
 
-            # Use the ndb_waiter to wait until RonDB has started before running benchmark
-            # Added extra sleep for mysqlds; may have to increase this
             command=$(printf "$COMMAND_TEMPLATE" ">
           bash -c \"bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
