@@ -392,6 +392,13 @@ service-template() {
 " "$SERVICE_NAME" "$RONDB_IMAGE_NAME" "$SERVICE_NAME";
 }
 
+DEPENDS_ON_FIELD="
+      depends_on:"
+
+DEPENDS_ON_TEMPLATE="
+        %s:
+          condition: service_healthy"
+
 VOLUMES_FIELD="
       volumes:"
 
@@ -407,6 +414,12 @@ ENV_FIELD="
 ENV_VAR_TEMPLATE="
       - %s=%s"
 
+HEALTHCHECK_TEMPLATE="
+      healthcheck:
+        test: %s
+        interval: %ss
+        timeout: %ss
+        retries: %s"
 
 COMMAND_TEMPLATE="
       command: %s"
@@ -557,12 +570,14 @@ if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
         template="$(service-template)"
         command=$(printf "$COMMAND_TEMPLATE" "[\"mysqld\"]")
         template+="$command"
-        # template+="$RESOURCES_SNIPPET"
 
         # mysqld needs this, or will otherwise complain "mbind: Operation not permitted".
         template+="
       cap_add:
         - SYS_NICE"
+
+        healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "mysqladmin ping -uroot" "10" "2" "10")
+        template+="$healthcheck"
 
         # Make sure these memory boundaries are allowed in Docker settings!
         # To check whether they are being used use `docker stats`
@@ -630,12 +645,16 @@ if [ "$NUM_API_NODES" -gt 0 ]; then
             # Use the ndb_waiter to wait until RonDB has started before running benchmark
             # Added extra sleep for mysqlds; may have to increase this
             command=$(printf "$COMMAND_TEMPLATE" ">
-          bash -c \"ndb_waiter --ndb-connectstring=$MGM_CONNECTION_STRING &&
-                    sleep 35 &&
-                    bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
+          bash -c \"bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
 
         template+="$command"
+
+        if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
+            template+="$DEPENDS_ON_FIELD"
+            depends_on=$(printf "$DEPENDS_ON_TEMPLATE" "mysqld_1")
+            template+="$depends_on"
+        fi
 
         # Make sure these memory boundaries are allowed in Docker settings!
         # To check whether they are being used use `docker stats`
