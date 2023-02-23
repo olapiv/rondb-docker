@@ -286,6 +286,10 @@ if [ -n "$RUN_BENCHMARK" ]; then
     fi
 fi
 
+source "$SCRIPT_DIR/environments/machine_sizes/$RONDB_SIZE.env"
+# shellcheck source=./environments/common.env
+source "$SCRIPT_DIR/environments/common.env"
+
 # We use this for the docker-compose project name, which will not allow "."
 RONDB_VERSION_NO_DOT=$(echo "$RONDB_VERSION" | tr -d '.')
 
@@ -324,22 +328,14 @@ AUTOBENCH_SYS_MULTI_FILEPATH="$SYSBENCH_MULTI_DIR/autobench.conf"
 AUTOBENCH_DBT2_SINGLE_FILEPATH="$DBT2_SINGLE_DIR/autobench.conf"
 AUTOBENCH_DBT2_MULTI_FILEPATH="$DBT2_MULTI_DIR/autobench.conf"
 
-# Copy resource files dependent on size
-cp ./resources/config_templates/autobench_dbt2.conf.$RONDB_SIZE ./resources/config_templates/autobench_dbt2.conf
-cp ./resources/config_templates/autobench_sysbench.conf.$RONDB_SIZE ./resources/config_templates/autobench_sysbench.conf
-cp ./resources/config_templates/dbt2_run_1.conf.multi.$RONDB_SIZE ./resources/config_templates/dbt2_run_1.conf.multi
-cp ./resources/config_templates/dbt2_run_1.conf.single.$RONDB_SIZE ./resources/config_templates/dbt2_run_1.conf.single
-cp ./resources/config_templates/config.ini.$RONDB_SIZE ./resources/config_templates/config.ini
-cp $SCRIPT_DIR/docker.env.$RONDB_SIZE $SCRIPT_DIR/docker.env
-
 # Since we are mounting the entire benchmarking directories, these files would be
 # overwritten if they are added via the Dockerfile.
 DBT2_CONF_SINGLE_FILEPATH="$DBT2_SINGLE_DIR/dbt2_run_1.conf"
 DBT2_CONF_MULTI_FILEPATH="$DBT2_MULTI_DIR/dbt2_run_1.conf"
 if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
-    cp "$SCRIPT_DIR/resources/config_templates/dbt2_run_1.conf.single" "$DBT2_CONF_SINGLE_FILEPATH"
+    echo "$DBT2_RUN_SINGLE" > "$DBT2_CONF_SINGLE_FILEPATH"
     if [ "$NUM_MYSQL_NODES" -gt 1 ]; then
-        cp "$SCRIPT_DIR/resources/config_templates/dbt2_run_1.conf.multi" "$DBT2_CONF_MULTI_FILEPATH"
+        echo "$DBT2_RUN_MULTI" > "$DBT2_CONF_MULTI_FILEPATH"
     fi
 fi
 
@@ -416,11 +412,20 @@ COMMAND_TEMPLATE="
 
 echo "Filling out templates"
 
-# shellcheck source=./docker.env
-source "$SCRIPT_DIR/docker.env"
-# shellcheck source=./misc_configs.env
-source "$SCRIPT_DIR/misc_configs.env"
-CONFIG_INI=$(printf "$CONFIG_INI_TEMPLATE" "$REPLICATION_FACTOR")
+CONFIG_INI=$(printf "$CONFIG_INI_TEMPLATE" \
+    "$CONFIG_INI_NumCPUs" \
+    "$CONFIG_INI_TotalMemoryConfig" \
+    "$CONFIG_INI_MaxNoOfTables" \
+    "$CONFIG_INI_MaxNoOfAttributes" \
+    "$CONFIG_INI_MaxNoOfTriggers" \
+    "$CONFIG_INI_TransactionMemory" \
+    "$CONFIG_INI_SharedGlobalMemory" \
+    "$CONFIG_INI_ReservedConcurrentOperations" \
+    "$CONFIG_INI_FragmentLogFileSize" \
+    "$REPLICATION_FACTOR" \
+    "$CONFIG_INI_MaxNoOfConcurrentOperations"
+)
+
 MGM_CONNECTION_STRING=''
 MGMD_IPS=''
 SINGLE_MYSQLD_IP=''
@@ -728,12 +733,14 @@ if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
         AUTOBENCH_SYSBENCH_SINGLE=$(printf "$AUTOBENCH_SYSBENCH_TEMPLATE" \
             "$SINGLE_MYSQLD_IP" "$MYSQL_USER" "$MYSQL_PASSWORD" \
             "$MYSQLD_SLOTS_PER_CONTAINER" "$MGMD_IPS" \
+            "$AUTO_SYS_THREAD_COUNTS_TO_RUN" "$AUTO_SYS_SYSBENCH_ROWS" \
             "1")
         echo "$AUTOBENCH_SYSBENCH_SINGLE" > "$AUTOBENCH_SYS_SINGLE_FILEPATH"
 
         AUTOBENCH_DBT2_SINGLE=$(printf "$AUTOBENCH_DBT2_TEMPLATE" \
             "$SINGLE_MYSQLD_IP" "$MYSQL_USER" "$MYSQL_PASSWORD" \
-            "$MYSQLD_SLOTS_PER_CONTAINER" "$MGMD_IPS")
+            "$MYSQLD_SLOTS_PER_CONTAINER" "$MGMD_IPS" \
+            "$AUTO_DBT2_DBT2_WAREHOUSES")
         echo "$AUTOBENCH_DBT2_SINGLE" > "$AUTOBENCH_DBT2_SINGLE_FILEPATH"
 
         if [ "$NUM_MYSQL_NODES" -gt 1 ]; then
