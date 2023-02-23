@@ -419,7 +419,8 @@ HEALTHCHECK_TEMPLATE="
         test: %s
         interval: %ss
         timeout: %ss
-        retries: %s"
+        retries: %s
+        start_period: %ss"
 
 COMMAND_TEMPLATE="
       command: %s"
@@ -446,6 +447,7 @@ CONFIG_INI=$(printf "$CONFIG_INI_TEMPLATE" \
 
 MGM_CONNECTION_STRING=''
 MGMD_IPS=''
+NDBD_IPS=()
 SINGLE_MYSQLD_IP=''
 MULTI_MYSQLD_IPS=''
 
@@ -537,9 +539,14 @@ for CONTAINER_NUM in $(seq $NUM_DATA_NODES); do
     NODE_ID=$CONTAINER_NUM
 
     SERVICE_NAME="ndbd_$CONTAINER_NUM"
+    NDBD_IPS+=("$SERVICE_NAME")
     template="$(service-template)"
     command=$(printf "$COMMAND_TEMPLATE" "[\"ndbmtd\", \"--ndb-nodeid=$NODE_ID\", \"--initial\", \"--ndb-connectstring=$MGM_CONNECTION_STRING\"]")
     template+="$command"
+
+    # interval, timeout, retries, start_period
+    healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "ndb_waiter --wait-nodes=$NODE_ID --ndb-connectstring=$MGM_CONNECTION_STRING" "15" "15" "3" "20")
+    template+="$healthcheck"
 
     template+="
       deploy:
@@ -576,7 +583,8 @@ if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
       cap_add:
         - SYS_NICE"
 
-        healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "mysqladmin ping -uroot" "10" "2" "10")
+        # interval, timeout, retries, start_period
+        healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "mysqladmin ping -uroot" "10" "2" "6" "25")
         template+="$healthcheck"
 
         # Make sure these memory boundaries are allowed in Docker settings!
@@ -648,8 +656,15 @@ if [ "$NUM_API_NODES" -gt 0 ]; then
 
         template+="$command"
 
+        # There are cases where the MySQLd is up, but the cluster is not.
+        # Also, we may not have MySQLds configured at all.
+        template+="$DEPENDS_ON_FIELD"
+        for NDBD_IP in "${NDBD_IPS[@]}"; do
+            depends_on=$(printf "$DEPENDS_ON_TEMPLATE" "$NDBD_IP")
+            template+="$depends_on"
+        done
+
         if [ "$NUM_MYSQL_NODES" -gt 0 ]; then
-            template+="$DEPENDS_ON_FIELD"
             depends_on=$(printf "$DEPENDS_ON_TEMPLATE" "mysqld_1")
             template+="$depends_on"
         fi
