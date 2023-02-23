@@ -211,24 +211,24 @@ fi
 
 if [ -n "$PULL_DOCKERHUB_IMAGE" ]; then
     if [ -n "$RONDB_TARBALL_URI" ]; then
-        echo "Cannot specify both a tarball URI and pull from DockerHub"
+        echo "Cannot specify both a tarball URI and pull from DockerHub" >&2
         exit 1
     fi
 else
     if [ ! -n "$RONDB_TARBALL_URI" ]; then
-        echo "Either a tarball URI must be specified or set the flag to pull the image from DockerHub"
+        echo "Either a tarball URI must be specified or set the flag to pull the image from DockerHub" >&2
         exit 1
     fi
 fi
 
 if [ "$NUM_MGM_NODES" -lt 1 ]; then
-    echo "At least 1 mgmd is required"
+    echo "At least 1 mgmd is required" >&2
     exit 1
 elif [ "$REPLICATION_FACTOR" -lt 1 ] || [ "$REPLICATION_FACTOR" -gt 4 ]; then
-    echo "The replication factor has to be >=1 and <5; It is currently $REPLICATION_FACTOR"
+    echo "The replication factor has to be >=1 and <5; It is currently $REPLICATION_FACTOR" >&2
     exit 1
 elif [ "$NODE_GROUPS" -lt 1 ]; then
-    echo "At least 1 node group is required"
+    echo "At least 1 node group is required" >&2
     exit 1
 fi
 
@@ -237,7 +237,7 @@ if [ "$RONDB_SIZE" != "small" ] && \
    [ "$RONDB_SIZE" != "medium" ] && \
    [ "$RONDB_SIZE" != "large" ] && \
    [ "$RONDB_SIZE" != "xlarge" ]; then
-    echo "size has to be one of <mini, small, medium, large, xlarge>"
+    echo "size has to be one of <mini, small, medium, large, xlarge>" >&2
     exit 1
 fi
 
@@ -245,13 +245,13 @@ if [ -n "$RUN_BENCHMARK" ]; then
     if [ "$RUN_BENCHMARK" != "sysbench_single" ] && \
        [ "$RUN_BENCHMARK" != "sysbench_multi" ] && \
        [ "$RUN_BENCHMARK" != "dbt2_single" ]; then
-        echo "Benchmark has to be one of <sysbench_single, sysbench_multi, dbt2_single>"
+        echo "Benchmark has to be one of <sysbench_single, sysbench_multi, dbt2_single>" >&2
         exit 1
     elif [ "$NUM_API_NODES" -lt 1 ]; then
-        echo "At least one api is required to run benchmarks"
+        echo "At least one api is required to run benchmarks" >&2
         exit 1
     elif [ "$NUM_MYSQL_NODES" -lt 1 ]; then
-        echo "At least one mysqld is required to run benchmarks"
+        echo "At least one mysqld is required to run benchmarks" >&2
         exit 1
     fi
 
@@ -259,21 +259,21 @@ if [ -n "$RUN_BENCHMARK" ]; then
     # One api container can however also run multiple Sysbench instances against multiple mysqld containers
     if [ "$RUN_BENCHMARK" == "sysbench_multi" ]; then
         if [ "$NUM_MYSQL_NODES" -lt "$NUM_API_NODES" ]; then
-            echo "For sysbench_multi, there should be at least as many mysqld as api containers"
+            echo "For sysbench_multi, there should be at least as many mysqld as api containers" >&2
             exit 1
         fi
     fi
 
     if [ "$RUN_BENCHMARK" == "sysbench_multi" ] || [ "$RUN_BENCHMARK" == "dbt2_multi" ]; then
         if [ "$NUM_MYSQL_NODES" -lt 2 ]; then
-            echo "At least two mysqlds are required to run the multi-benchmarks"
+            echo "At least two mysqlds are required to run the multi-benchmarks" >&2
             exit 1
         fi
     fi
 
     if [ "$RUN_BENCHMARK" == "dbt2_single" ] || [ "$RUN_BENCHMARK" == "dbt2_multi" ]; then
         if [ "$NUM_API_NODES" -gt 1 ]; then
-            echo "Can only run dbt2 benchmarks with one api container"
+            echo "Can only run dbt2 benchmarks with one api container" >&2
             exit 1
         fi
     fi
@@ -281,7 +281,7 @@ if [ -n "$RUN_BENCHMARK" ]; then
     # TODO: Make this work with BENCHMARK_SERVERS in sysbench_multi; This requires some
     #   care in synchronizing the api nodes when executing the benchmark.
     if [ "$NUM_API_NODES" -gt 1 ]; then
-        echo "Running more than one api container for Sysbench benchmarks is currently not supported"
+        echo "Running more than one api container for Sysbench benchmarks is currently not supported" >&2
         exit 1
     fi
 fi

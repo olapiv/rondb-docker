@@ -103,27 +103,37 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+set -- "${POSITIONAL[@]}" # restore unknown options
+if [[ -n $1 ]]; then
+    echo "##################" >&2
+    echo "Illegal arguments: $*" >&2
+    echo "##################" >&2
+    echo
+    print_usage
+    exit 1
+fi
+
 if [ -n "$RONDB_TARBALL_PATH" ] && [ -n "$RONDB_TARBALL_URL" ]; then
-    echo "Cannot specify both a RonDB tarball path and url"
+    echo "Cannot specify both a RonDB tarball path and url" >&2
     print_usage
     exit 1
 fi
 
-if [ "$BENCHMARK" != "" ] && \
-   [ "$BENCHMARK" != "sysbench_single" ] && \
-   [ "$BENCHMARK" != "sysbench_multi" ] && \
-   [ "$BENCHMARK" != "dbt2_single" ]; then
-    echo "Benchmark has to be one of <sysbench_single, sysbench_multi, dbt2_single>"
+if [ "$BENCHMARK" != "" ] &&
+    [ "$BENCHMARK" != "sysbench_single" ] &&
+    [ "$BENCHMARK" != "sysbench_multi" ] &&
+    [ "$BENCHMARK" != "dbt2_single" ]; then
+    echo "Benchmark has to be one of <sysbench_single, sysbench_multi, dbt2_single>" >&2
     print_usage
     exit 1
 fi
 
-if [ "$RONDB_SIZE" != "small" ] && \
-   [ "$RONDB_SIZE" != "mini" ] && \
-   [ "$RONDB_SIZE" != "medium" ] && \
-   [ "$RONDB_SIZE" != "large" ] && \
-   [ "$RONDB_SIZE" != "xlarge" ]; then
-    echo "Size has to be one of <mini, small, medium, large, xlarge>"
+if [ "$RONDB_SIZE" != "small" ] &&
+    [ "$RONDB_SIZE" != "mini" ] &&
+    [ "$RONDB_SIZE" != "medium" ] &&
+    [ "$RONDB_SIZE" != "large" ] &&
+    [ "$RONDB_SIZE" != "xlarge" ]; then
+    echo "Size has to be one of <mini, small, medium, large, xlarge>" >&2
     print_usage
     exit 1
 fi
@@ -141,7 +151,7 @@ if [ -n "$RONDB_TARBALL_PATH" ]; then
     EXEC_CMD="$EXEC_CMD --rondb-tarball-uri $RONDB_TARBALL_PATH"
 elif [ -n "$RONDB_TARBALL_URL" ]; then
     EXEC_CMD="$EXEC_CMD --rondb-tarball-uri $RONDB_TARBALL_URL"
-else 
+else
     EXEC_CMD="$EXEC_CMD --pull-dockerhub-image"
 fi
 
@@ -154,7 +164,7 @@ EXEC_CMD="$EXEC_CMD --num-mysql-nodes $NUM_MYSQL_SERVERS"
 EXEC_CMD="$EXEC_CMD --num-api-nodes 1"
 
 if [ "$BENCHMARK" != "" ]; then
-  EXEC_CMD="$EXEC_CMD --run-benchmark $BENCHMARK"
+    EXEC_CMD="$EXEC_CMD --run-benchmark $BENCHMARK"
 fi
 
 echo "Executing command: $EXEC_CMD"
