@@ -80,7 +80,6 @@ Commands to run:
 ```bash
 # Run docker-compose cluster with image from DockerHub
 ./build_run_docker.sh \
-  --pull-dockerhub-image \
   --rondb-version latest \
   --num-mgm-nodes 1 \
   --node-groups 1 \
@@ -91,8 +90,7 @@ Commands to run:
 # Build and run image **for local platform** in docker-compose using local RonDB tarball (download it first!)
 # Beware that the local platform is linux/arm64 in this case
 ./build_run_docker.sh \
-  --rondb-tarball-is-local \
-  --rondb-tarball-uri ./rondb-21.04.10-linux-glibc2.35-arm64_v8.tar.gz \
+  --rondb-tarball-path ./rondb-21.04.10-linux-glibc2.35-arm64_v8.tar.gz \
   --rondb-version 21.04.10 \
   --num-mgm-nodes 1 \
   --node-groups 1 \
@@ -152,7 +150,7 @@ The Docker images come with a set of benchmarks pre-installed. To run any of the
 
 # Running with a custom size; The benchmarks are run on the API containers and make queries towards the mysqld containers; this means that both types are needed.
 ./build_run_docker.sh \
-  -pd -v latest -m 1 -g 1 -r 2 -my 2 -a 1 \
+  -v latest -m 1 -g 1 -r 2 -my 2 -a 1 \
   --run-benchmark <sysbench_single, sysbench_multi, dbt2_single>
 ```
 

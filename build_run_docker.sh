@@ -33,32 +33,57 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 # Repo version
 VERSION="$(< "$SCRIPT_DIR/VERSION" sed -e 's/^[[:space:]]*//')"
 
+################
+### Defaults ###
+################
+
+NUM_MGM_NODES=1
+NUM_MYSQL_NODES=0
+NUM_API_NODES=0
+REPLICATION_FACTOR=1
+NODE_GROUPS=1
+RUN_BENCHMARK=
+VOLUME_TYPE=docker
+SAVE_SAMPLE_FILES=
+DETACHED=
+RONDB_SIZE=small
+RONDB_VERSION=latest
+
 function print_usage() {
     cat <<EOF
 RonDB-Docker version: $VERSION
 
-Usage: $0    
-    [-h         --help                              ]
-    [-v         --rondb-version             <string>]
-    [-ruri      --rondb-tarball-uri         <string>]
-    [-m         --num-mgm-nodes             <int>   ]
-    [-g         --node-groups               <int>   ]
-    [-r         --replication-factor        <int>   ]
-    [-my        --num-mysql-nodes           <int>   ]
-    [-a         --num-api-nodes             <int>   ]
-    [-b         --run-benchmark             <string>
-                    Options: <sysbench_single, sysbench_multi, dbt2_single>
-                                                    ]
-    [-pd        --pull-dockerhub-image              ]
-    [-rtarl     --rondb-tarball-is-local            ]
-    [-lv        --volumes-in-local-dir              ]
-    [-sf        --save-sample-files                 ]
-    [-d         --detached                          ]
-    [-s         --size                      <string>]
+Usage: $0
+    [-h     --help                                              ]
+    [-v     --rondb-version                             <string>
+                Default: $RONDB_VERSION                         ]
+    [-tp    --rondb-tarball-path                        <string>
+                Build Dockerfile with a local tarball           
+                Default: pull image from Dockerhub              ]
+    [-tu    --rondb-tarball-url                         <string>
+                Build Dockerfile with a remote tarball
+                Default: pull image from Dockerhub              ]
+    [-m     --num-mgm-nodes                             <int>   ]
+    [-g     --node-groups                               <int>   ]
+    [-r     --replication-factor                        <int>   ]
+    [-my    --num-mysql-nodes                           <int>   ]
+    [-a     --num-api-nodes                             <int>   ]
+    [-b     --run-benchmark                             <string>
+                Options: <sysbench_single, sysbench_multi, 
+                    dbt2_single>                                ]
+    [-lv    --volumes-in-local-dir                              ]
+    [-sf    --save-sample-files                                 ]
+    [-d     --detached                                          ]
+    [-s     --size                                      <string>
+                Options: <mini, small, medium, large, xlarge>
+                Default: $RONDB_SIZE
 
-    The size parameter is only intended for the wrapper
-    script run.sh that makes it very easy to set up
-    different sizes of the RonDB cluster resources.
+                The size of the machine that you are running 
+                this script from.
+
+                This parameter is only intended for the
+                wrapper script run.sh in order to easily create
+                clusters that consume varying resources.        ]
 EOF
 }
 
@@ -70,21 +95,6 @@ fi
 #######################
 #### CLI Arguments ####
 #######################
-
-# Defaults
-RONDB_TARBALL_LOCAL_REMOTE=remote
-NUM_MGM_NODES=1
-NUM_MYSQL_NODES=0
-NUM_API_NODES=0
-REPLICATION_FACTOR=1
-NODE_GROUPS=1
-RUN_BENCHMARK=
-VOLUME_TYPE=docker
-PULL_DOCKERHUB_IMAGE=
-SAVE_SAMPLE_FILES=
-DETACHED=
-RONDB_SIZE=small
-RONDB_VERSION=latest
 
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
@@ -100,8 +110,13 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
-    -ruri | --rondb-tarball-uri)
-        RONDB_TARBALL_URI="$2"
+    -tp | --rondb-tarball-path)
+        RONDB_TARBALL_PATH="$2"
+        shift # past argument
+        shift # past value
+        ;;
+    -tu | --rondb-tarball-url)
+        RONDB_TARBALL_URL="$2"
         shift # past argument
         shift # past value
         ;;
@@ -135,16 +150,6 @@ while [[ $# -gt 0 ]]; do
         RUN_BENCHMARK="$2"
         shift # past argument
         shift # past value
-        ;;
-
-    -pd | --pull-dockerhub-image)
-        PULL_DOCKERHUB_IMAGE=1
-        shift # past argument
-        ;;
-
-    -rtarl | --rondb-tarball-is-local)
-        RONDB_TARBALL_LOCAL_REMOTE=local
-        shift # past argument
         ;;
 
     -d | --detached)
@@ -182,9 +187,8 @@ print-parsed-arguments() {
     echo "#################"
     echo
     echo "RonDB version                 = ${RONDB_VERSION}"
-    echo "Pull DockerHub image          = ${PULL_DOCKERHUB_IMAGE}"
-    echo "RonDB tarball local/remote    = ${RONDB_TARBALL_LOCAL_REMOTE}"
-    echo "RonDB tarball URI             = ${RONDB_TARBALL_URI}"
+    echo "RonDB tarball path            = ${RONDB_TARBALL_PATH}"
+    echo "RonDB tarball url             = ${RONDB_TARBALL_URL}"
     echo "Number of management nodes    = ${NUM_MGM_NODES}"
     echo "Node groups                   = ${NODE_GROUPS}"
     echo "Replication factor            = ${REPLICATION_FACTOR}"
@@ -209,16 +213,10 @@ if [[ -n $1 ]]; then
     exit 1
 fi
 
-if [ -n "$PULL_DOCKERHUB_IMAGE" ]; then
-    if [ -n "$RONDB_TARBALL_URI" ]; then
-        echo "Cannot specify both a tarball URI and pull from DockerHub" >&2
-        exit 1
-    fi
-else
-    if [ ! -n "$RONDB_TARBALL_URI" ]; then
-        echo "Either a tarball URI must be specified or set the flag to pull the image from DockerHub" >&2
-        exit 1
-    fi
+if [ -n "$RONDB_TARBALL_PATH" ] && [ -n "$RONDB_TARBALL_URL" ]; then
+    echo "Cannot specify both a RonDB tarball path and url" >&2
+    print_usage
+    exit 1
 fi
 
 if [ "$NUM_MGM_NODES" -lt 1 ]; then
@@ -346,13 +344,20 @@ BENCH_DIR="/home/mysql/benchmarks"
 #######################
 #######################
 
-echo "Building RonDB Docker image for local platform"
-
 RONDB_IMAGE_NAME="rondb-standalone:$RONDB_VERSION"
-if [ -n "$PULL_DOCKERHUB_IMAGE" ]; then
+if [ ! -n "$RONDB_TARBALL_PATH" ] && [ ! -n "$RONDB_TARBALL_URL" ]; then
     RONDB_IMAGE_NAME="hopsworks/$RONDB_IMAGE_NAME"
     docker pull $RONDB_IMAGE_NAME
 else
+    echo "Building RonDB Docker image for local platform"
+
+    RONDB_TARBALL_URI=$RONDB_TARBALL_URL
+    RONDB_TARBALL_LOCAL_REMOTE=remote
+    if [ -n "$RONDB_TARBALL_PATH" ]; then
+        RONDB_TARBALL_URI=$RONDB_TARBALL_PATH
+        RONDB_TARBALL_LOCAL_REMOTE=local
+    fi
+
     docker buildx build . \
         --tag $RONDB_IMAGE_NAME \
         --build-arg RONDB_VERSION=$RONDB_VERSION \

@@ -36,12 +36,14 @@ Usage: $0
     [-v     --rondb-version                                 <string>
                 Default: $RONDB_VERSION                             ]
     [-tp    --rondb-tarball-path                            <string>
-                Build Dockerfile with a local tarball               ]
+                Build Dockerfile with a local tarball           
+                Default: pull image from Dockerhub                  ]
     [-tu    --rondb-tarball-url                             <string>
-                Build Dockerfile with a remote tarball              ]
+                Build Dockerfile with a remote tarball
+                Default: pull image from Dockerhub                  ]
     [-b     --run-benchmark                                 <string>
-                Options: <sysbench_single, sysbench_multi, dbt2_single>
-                                                                    ]
+                Options: <sysbench_single, sysbench_multi,
+                    dbt2_single>                                    ]
     [-b     --size                                          <string>
                 Options: <mini, small, medium, large, xlarge>
                 Default: $RONDB_SIZE
@@ -147,12 +149,9 @@ EXEC_CMD="./build_run_docker.sh"
 EXEC_CMD="$EXEC_CMD --rondb-version $RONDB_VERSION"
 
 if [ -n "$RONDB_TARBALL_PATH" ]; then
-    EXEC_CMD="$EXEC_CMD --rondb-tarball-is-local"
-    EXEC_CMD="$EXEC_CMD --rondb-tarball-uri $RONDB_TARBALL_PATH"
+    EXEC_CMD="$EXEC_CMD --rondb-tarball-path $RONDB_TARBALL_PATH"
 elif [ -n "$RONDB_TARBALL_URL" ]; then
-    EXEC_CMD="$EXEC_CMD --rondb-tarball-uri $RONDB_TARBALL_URL"
-else
-    EXEC_CMD="$EXEC_CMD --pull-dockerhub-image"
+    EXEC_CMD="$EXEC_CMD --rondb-tarball-url $RONDB_TARBALL_URL"
 fi
 
 EXEC_CMD="$EXEC_CMD --size $RONDB_SIZE"
