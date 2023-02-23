@@ -63,7 +63,8 @@ RUN --mount=type=cache,target=$DOWNLOADS_CACHE_DIR \
     # `make install` places shared libraries into $OPENSSL_ROOT
 
 ENV LD_LIBRARY_PATH=$OPENSSL_ROOT/lib/:$LD_LIBRARY_PATH
-RUN echo "/usr/local/ssl/lib" > /etc/ld.so.conf
+# So the path survives changing user
+RUN echo $LD_LIBRARY_PATH > /etc/ld.so.conf
 RUN ldconfig --verbose
 
 # Copying bare minimum of Hopsworks cloud environment for now
@@ -73,9 +74,6 @@ RUN groupadd mysql && adduser mysql --ingroup mysql
 ENV HOPSWORK_DIR=/srv/hops
 ENV RONDB_BIN_DIR=$HOPSWORK_DIR/mysql-$RONDB_VERSION
 RUN mkdir -p $RONDB_BIN_DIR
-
-# Add to PATH and LD_LIBRARY_PATH in mysql user
-RUN echo "export PATH=/srv/hops/mysql/bin:\$PATH" >> /home/mysql/.profile
 
 # Get RonDB tarball from local path & unpack it
 FROM cloud_preparation as local_tarball
@@ -101,8 +99,12 @@ ENV RONDB_BIN_DIR_SYMLINK=$HOPSWORK_DIR/mysql
 RUN ln -s $RONDB_BIN_DIR $RONDB_BIN_DIR_SYMLINK
 
 ENV PATH=$RONDB_BIN_DIR_SYMLINK/bin:$PATH
+# So the path survives changing user to mysql
+RUN echo "export PATH=$PATH" >> /home/mysql/.profile
 
 ENV LD_LIBRARY_PATH=$RONDB_BIN_DIR_SYMLINK/lib:$LD_LIBRARY_PATH
+# So the path survives changing user
+RUN echo $LD_LIBRARY_PATH > /etc/ld.so.conf
 RUN ldconfig --verbose
 
 ENV RONDB_DATA_DIR=$HOPSWORK_DIR/mysql-cluster
