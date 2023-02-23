@@ -19,13 +19,13 @@
 function print_usage() {
     cat <<EOF
 Usage: $0    
-    [-h     --help                                      ]
-    [-v     --rondb-version                     <string>]
-    [-r     --rondb-local-tarball               <string>]
-    [-b     --benchmark                         <string>
+    [-h     --help                                                  ]
+    [-v     --rondb-version                                 <string>]
+    [-r     --rondb-local-tarball                           <string>]
+    [-b     --run-benchmark                                 <string>
                 Options: <sysbench_single, sysbench_multi, dbt2_single>
-                                                        ]
-    [-b     --size                              <string>
+                                                                    ]
+    [-b     --size                                          <string>
                 Options: <mini, small, medium, large, xlarge>
 
                 The size of the machine that you are running 
@@ -36,7 +36,8 @@ Usage: $0
                 - medium: at least 32 GB of memory and 8 CPU cores
                 - large: at least 32 GB of memory and 16 CPU cores
                 - xlarge: at least 64 GB of memory and 32 CPU cores
-                                                        ]
+                                                                    ]
+    [-lv    --volumes-in-local-dir                                  ]
 EOF
 }
 
@@ -47,6 +48,7 @@ DOCKER_PULLHUB=yes
 RONDB_TARBALL=
 NUM_MYSQL_SERVERS=2
 BENCHMARK=
+VOLUMES_IN_LOCAL_DIR=
 
 while [[ $# -gt 0 ]]; do
     key="$1"
@@ -66,7 +68,7 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
-    -b | --benchmark)
+    -b | --run-benchmark)
         BENCHMARK="$2"
         shift # past argument
         shift # past value
@@ -76,6 +78,10 @@ while [[ $# -gt 0 ]]; do
         RONDB_TARBALL="$2"
         shift # past argument
         shift # past value
+        ;;
+    -lv | --volumes-in-local-dir)
+        VOLUMES_IN_LOCAL_DIR="--volumes-in-local-dir"
+        shift # past argument
         ;;
     *)                     # unknown option
         POSITIONAL+=("$1") # save it in an array for later
@@ -122,5 +128,6 @@ if [ "$BENCHMARK" != "" ]; then
   EXEC_CMD="$EXEC_CMD --run-benchmark $BENCHMARK"
 fi
 EXEC_CMD="$EXEC_CMD --num-api-nodes 1"
+EXEC_CMD="$EXEC_CMD $VOLUMES_IN_LOCAL_DIR"
 echo "Executing command: $EXEC_CMD"
 eval $EXEC_CMD
