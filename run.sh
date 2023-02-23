@@ -19,26 +19,24 @@
 function print_usage() {
     cat <<EOF
 Usage: $0    
-    [-h         --help                              ]
-    [-v         --rondb-version             <string>]
-    [-r         --rondb-local-tarball       <string>]
-    [-b         --benchmark                 <string>]
-    [-s         --size                      <string>]
+    [-h     --help                                      ]
+    [-v     --rondb-version                     <string>]
+    [-r     --rondb-local-tarball               <string>]
+    [-b     --benchmark                         <string>
+                Options: <sysbench_single, sysbench_multi, dbt2_single>
+                                                        ]
+    [-b     --size                              <string>
+                Options: <mini, small, medium, large, xlarge>
 
-RonDB running in Docker Compose is intended for development
-purposes, not for production usage. We have a number of
-setups dependent on the size of your development machine.
-
-The mini configuration should work on a machine with 8GB of
-memory and a few CPUs.
-The small configuration is intended for development machines
-that have at least 16 GB of memory and 4 CPU cores.
-The medium configuration is intended for machines with at least
-32 GB of memory and 8 CPU cores.
-The large configuration is intended for machines with at least
-32 GB of memory and 16 CPU cores.
-The xlarge configuration is intended for machines with at
-least 64 GB of memory and 32 CPU cores.
+                The size of the machine that you are running 
+                this script from:
+                
+                - mini: at least 8GB of memory and a few CPUs
+                - small: at least 16 GB of memory and 4 CPU cores
+                - medium: at least 32 GB of memory and 8 CPU cores
+                - large: at least 32 GB of memory and 16 CPU cores
+                - xlarge: at least 64 GB of memory and 32 CPU cores
+                                                        ]
 EOF
 }
 
