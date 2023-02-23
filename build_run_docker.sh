@@ -182,7 +182,7 @@ print-parsed-arguments() {
     echo "#################"
     echo
     echo "RonDB version                 = ${RONDB_VERSION}"
-    echo "Pull Dockerhub image          = ${PULL_DOCKERHUB_IMAGE}"
+    echo "Pull DockerHub image          = ${PULL_DOCKERHUB_IMAGE}"
     echo "RonDB tarball local/remote    = ${RONDB_TARBALL_LOCAL_REMOTE}"
     echo "RonDB tarball URI             = ${RONDB_TARBALL_URI}"
     echo "Number of management nodes    = ${NUM_MGM_NODES}"
@@ -211,12 +211,12 @@ fi
 
 if [ -n "$PULL_DOCKERHUB_IMAGE" ]; then
     if [ -n "$RONDB_TARBALL_URI" ]; then
-        echo "Cannot specify both a tarball URI and pull from Dockerhub"
+        echo "Cannot specify both a tarball URI and pull from DockerHub"
         exit 1
     fi
 else
     if [ ! -n "$RONDB_TARBALL_URI" ]; then
-        echo "Either a tarball URI must be specified or set the flag to pull the image from Dockerhub"
+        echo "Either a tarball URI must be specified or set the flag to pull the image from DockerHub"
         exit 1
     fi
 fi
