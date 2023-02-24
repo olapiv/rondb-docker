@@ -145,31 +145,27 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         shift # past value
         ;;
-
     -b | --run-benchmark)
         RUN_BENCHMARK="$2"
         shift # past argument
         shift # past value
         ;;
-
-    -d | --detached)
-        DETACHED="-d"
-        shift # past argument
-        ;;
-
-    -lv | --volumes-in-local-dir)
-        VOLUME_TYPE=local
-        shift # past argument
-        ;;
-
-    -sf | --save-sample-files)
-        SAVE_SAMPLE_FILES=1
-        shift # past argument
-        ;;
     -s | --size)
         RONDB_SIZE="$2"
         shift # past argument
         shift # past value
+        ;;
+    -d | --detached)
+        DETACHED="-d"
+        shift # past argument
+        ;;
+    -lv | --volumes-in-local-dir)
+        VOLUME_TYPE=local
+        shift # past argument
+        ;;
+    -sf | --save-sample-files)
+        SAVE_SAMPLE_FILES=1
+        shift # past argument
         ;;
 
     *)                     # unknown option
