@@ -67,7 +67,7 @@ These user profiles have been tested on various machines such as:
 * Docker Desktop on Windows with WSL 2 using AMD/Intel CPUs
 * Linux servers, laptops, desktops and workstations
 
-## Creating dynamic cluster sizes
+## Creating custom cluster sizes
 
 To decide yourself on how many nodes your RonDB cluster should contain, you can use the script `./build_run_docker.sh`.
 
