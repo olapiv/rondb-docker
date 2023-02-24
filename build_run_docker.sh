@@ -222,8 +222,8 @@ fi
 if [ "$NUM_MGM_NODES" -lt 1 ]; then
     echo "At least 1 mgmd is required" >&2
     exit 1
-elif [ "$REPLICATION_FACTOR" -lt 1 ] || [ "$REPLICATION_FACTOR" -gt 4 ]; then
-    echo "The replication factor has to be >=1 and <5; It is currently $REPLICATION_FACTOR" >&2
+elif [ "$REPLICATION_FACTOR" -lt 1 ] || [ "$REPLICATION_FACTOR" -gt 3 ]; then
+    echo "The replication factor has to be >=1 and <4; It is currently $REPLICATION_FACTOR" >&2
     exit 1
 elif [ "$NODE_GROUPS" -lt 1 ]; then
     echo "At least 1 node group is required" >&2
