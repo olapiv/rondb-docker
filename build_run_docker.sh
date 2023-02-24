@@ -647,8 +647,9 @@ if [ "$NUM_API_NODES" -gt 0 ]; then
                 GENERATE_DBT2_DATA_FLAG="--generate-dbt2-data"
             fi
 
+            # MySQLd might be up, but still not entirely ready yet..
             command=$(printf "$COMMAND_TEMPLATE" ">
-          bash -c \"bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
+          bash -c \"sleep 5 && bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
 
         template+="$command"
