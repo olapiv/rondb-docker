@@ -541,7 +541,8 @@ for CONTAINER_NUM in $(seq $NUM_DATA_NODES); do
     template+="$command"
 
     # interval, timeout, retries, start_period
-    healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "ndb_waiter --wait-nodes=$NODE_ID --ndb-connectstring=$MGM_CONNECTION_STRING" "15" "15" "3" "20")
+    healthcheck_command="./docker/rondb_standalone/healthcheck.sh $MGM_CONNECTION_STRING $NODE_ID"
+    healthcheck=$(printf "$HEALTHCHECK_TEMPLATE" "$healthcheck_command" "15" "15" "3" "20")
     template+="$healthcheck"
 
     template+="
