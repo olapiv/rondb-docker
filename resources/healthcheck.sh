@@ -28,6 +28,8 @@
 MGM_CONNECTION_STRING=$1
 NODE_ID=$2
 
+# An alternative to using ndb_waiter, since the ndb_waiter occupies an API slot.
+# The mgm client uses the mgmds slot instead.
 STATUS=$(ndb_mgm --ndb-connectstring $MGM_CONNECTION_STRING -e "$NODE_ID status")
 echo $STATUS
 
