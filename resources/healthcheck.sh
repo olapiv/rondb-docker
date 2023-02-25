@@ -21,7 +21,7 @@
 ################
 
 # - "Node 1: not connected"             # exit code 0
-# - "3: Node not found"                 # exit code 255
+# - "3: Node not found"                 # exit code 1
 # - "Node 2: started (RonDB-22.10.1)"   # exit code 0
 # - "94: Node not found"                # exit code 255
 
