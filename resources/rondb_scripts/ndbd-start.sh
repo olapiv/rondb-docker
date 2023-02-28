@@ -42,15 +42,17 @@ while [ $# -gt 0 ]; do
   shift       
 done
 
-ndbd_command="/srv/hops/mysql/bin/ndbmtd -c "$MGM_CONN" $NO_DAEMON --ndb-nodeid=$NDB_NDBD_NODE_ID  --connect-retries=-1 --connect-delay=10 $INIT_ARG $NOWAIT_NODES_LIST"
+ndbd_command="/srv/hops/mysql/bin/ndbmtd -c "$MGM_CONN" --ndb-nodeid=$NDB_NDBD_NODE_ID  --connect-retries=-1 --connect-delay=10 $INIT_ARG $NOWAIT_NODES_LIST"
 
 # This is not in the original cloud setup;
 # It is used for alternative process managers such as supervsisord
 # that cannot daemonize processes.
 if [ -n "$NO_DAEMON" ]; then
-    NO_DAEMON="--nodaemon"
+    ndbd_command="$ndbd_command --nodaemon"
     echo "Starting the data node as a foreground process"
     exec $ndbd_command
+else
+    echo "Running command '$ndbd_command'"
 fi
 
 echo "Starting Data Node $NDB_NDBD_NODE_ID"
