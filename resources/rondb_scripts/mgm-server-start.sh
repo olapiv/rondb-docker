@@ -23,8 +23,18 @@ if [ ! -e /srv/hops/mysql/bin/ndb_mgmd ] ; then
     exit 3
 fi
 
+mgmd_command="/srv/hops/mysql/bin/ndb_mgmd $NO_DAEMON --ndb-nodeid=$NDB_MGMD_NODE_ID -f /srv/hops/mysql-cluster/config.ini  --configdir=/srv/hops/mysql-cluster/mgmd --reload --initial"
 
-/srv/hops/mysql/bin/ndb_mgmd --ndb-nodeid=$NDB_MGMD_NODE_ID -f /srv/hops/mysql-cluster/config.ini  --configdir=/srv/hops/mysql-cluster/mgmd --reload --initial
+# This is not in the original cloud setup;
+# It is used for alternative process managers such as supervsisord
+# that cannot daemonize processes.
+if [ -n "$NO_DAEMON" ]; then
+    NO_DAEMON="--nodaemon"
+    echo "Starting the MySQL Management as a foreground process"
+    exec $mgmd_command
+fi
+
+$mgmd_command
 
 
 

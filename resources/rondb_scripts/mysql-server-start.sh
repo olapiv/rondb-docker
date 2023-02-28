@@ -36,6 +36,16 @@ if [ $SKIP_WAIT -ne 1 ] ; then
   /srv/hops/mysql/bin/ndb_waiter -c $MGM_CONN_STRING --timeout=10800  2>&1 > /dev/null
 fi
 
-  /srv/hops/mysql/bin/mysqld --defaults-file=/srv/hops/mysql-cluster/my.cnf $SKIP_GRANTS > /srv/hops/mysql-cluster/log/mysql_52_out.log  2>&1 < /dev/null &
+mysqld_command="/srv/hops/mysql/bin/mysqld --defaults-file=/srv/hops/mysql-cluster/my.cnf $SKIP_GRANTS"
+
+# This is not in the original cloud setup;
+# It is used for alternative process managers such as supervsisord
+# that cannot daemonize processes.
+if [ -n "$NO_DAEMON" ]; then
+    echo "Starting the MySQL server as a foreground process"
+    exec $mysqld_command
+else
+    $mysqld_command > /srv/hops/mysql-cluster/log/mysql_52_out.log  2>&1 < /dev/null &
+fi
 
 exit $?
