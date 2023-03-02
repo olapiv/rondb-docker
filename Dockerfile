@@ -99,8 +99,6 @@ ENV RONDB_BIN_DIR_SYMLINK=$HOPSWORK_DIR/mysql
 RUN ln -s $RONDB_BIN_DIR $RONDB_BIN_DIR_SYMLINK
 
 ENV PATH=$RONDB_BIN_DIR_SYMLINK/bin:$PATH
-# So the path survives changing user to mysql
-RUN echo "export PATH=$PATH" >> /home/mysql/.profile
 
 ENV LD_LIBRARY_PATH=$RONDB_BIN_DIR_SYMLINK/lib:$LD_LIBRARY_PATH
 # So the path survives changing user
@@ -127,6 +125,11 @@ ENV MYSQL_UNIX_PORT=$RONDB_DATA_DIR/mysql.sock
 RUN mkdir -p $LOG_DIR $RONDB_SCRIPTS_DIR $BACKUP_DATA_DIR $DISK_COLUMNS_DIR
 
 COPY --chown=mysql:mysql ./resources/rondb_scripts $RONDB_SCRIPTS_DIR
+ENV PATH=$RONDB_SCRIPTS_DIR:$PATH
+
+# So the path survives changing user to mysql
+RUN echo "export PATH=$PATH" >> /home/mysql/.profile
+
 RUN touch $MYSQL_UNIX_PORT
 
 # We expect this image to be used as base image to other
