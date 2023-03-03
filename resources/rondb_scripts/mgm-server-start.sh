@@ -37,7 +37,7 @@ if [ -n "$NO_DAEMON" ]; then
     exec $mgmd_command
 fi
 
-$mgmd_command
+eval $mgmd_command
 
 
 
