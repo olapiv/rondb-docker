@@ -48,7 +48,7 @@ ndbd_command="/srv/hops/mysql/bin/ndbmtd -c "$MGM_CONN" --ndb-nodeid=$NDB_NDBD_N
 # It is used for alternative process managers such as supervsisord
 # that cannot daemonize processes.
 if [ -n "$NO_DAEMON" ]; then
-    ndbd_command="$ndbd_command --nodaemon"
+    ndbd_command="$ndbd_command --foreground"
     echo "Starting the data node as a foreground process"
     exec $ndbd_command
 else
