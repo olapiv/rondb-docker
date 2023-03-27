@@ -8,15 +8,14 @@ if [ "X$USERID" != "Xmysql" ]; then
     exit -3
 fi
 
-echo "Testing to see if a cluster is already running on $MGM_CONN_STRING ..."
-# /srv/hops/mysql/bin/ndb_mgm -c $MGM_CONN_STRING -e \"show\"> /dev/null
+echo "Testing to see if a cluster is already running on 1186 ..."
 netstat -ltu | grep "1186"
 
 if [ $? -eq 0 ]; then
-    echo "A management server is already running on $MGM_CONN_STRING"
+    echo "A management server is already running on 1186"
     exit 2
 else
-    echo "No management server is running on $MGM_CONN_STRING; we're good to go"
+    echo "No management server is running on 1186; we're good to go"
 fi
 
 if [ ! -e /srv/hops/mysql/bin/ndb_mgmd ]; then
@@ -24,7 +23,13 @@ if [ ! -e /srv/hops/mysql/bin/ndb_mgmd ]; then
     exit 3
 fi
 
-mgmd_command="/srv/hops/mysql/bin/ndb_mgmd --ndb-nodeid=$NDB_MGMD_NODE_ID -f /srv/hops/mysql-cluster/config.ini  --configdir=/srv/hops/mysql-cluster/mgmd --reload --initial"
+# TODO: Add this to the original cloud setup
+INITIAL_START_ARG=
+if [ -n "$INITIAL_START" ]; then
+    INITIAL_START_ARG="--initial"
+fi
+
+mgmd_command="/srv/hops/mysql/bin/ndb_mgmd --ndb-nodeid=$NDB_MGMD_NODE_ID -f /srv/hops/mysql-cluster/config.ini  --configdir=/srv/hops/mysql-cluster/mgmd --reload $INITIAL_START_ARG"
 
 # This is not in the original cloud setup;
 # It is used for alternative process managers such as supervsisord
