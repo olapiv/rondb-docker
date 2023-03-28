@@ -12,6 +12,10 @@ fi
 INITIAL_START_ARG=
 if [ -n "$INITIAL_START" ]; then
     INITIAL_START_ARG="--initial"
+
+    # We flip this back in case the ndbd crashes and restarts using this script.
+    # If we only have one replica, we would erase our data.
+    sed -i 's/^INITIAL_START=.*$/INITIAL_START=/g' /srv/hops/mysql-cluster/ndb/scripts/ndbd_env_variables
 fi
 
 MGM_CONN=$MGM_CONN_STRING
