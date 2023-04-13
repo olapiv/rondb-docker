@@ -1,6 +1,13 @@
 # Managed RonDB
 
-The code in this directory allows users to test managed RonDB locally using Docker Compose. Managed RonDB allows the user to perform live operations on the cluster such as scaling data nodes/MySQLds/API nodes, do online software up/downgrades, run backups or even restoring from backups. The [desired_state.jsonc](desired_state.jsonc) file describes the API to managed RonDB.
+The code in this directory allows users to test managed RonDB locally using Docker Compose. Managed RonDB allows the user to perform live operations on the cluster such as:
+
+* scale data nodes/MySQLds/API nodes
+* do online software up/downgrades
+* create backups
+* restore from backups
+
+The [desired_state.jsonc](desired_state.jsonc) file describes the API to managed RonDB.
 
 ## Demo
 
@@ -8,9 +15,9 @@ The code in this directory allows users to test managed RonDB locally using Dock
 
 This demo shows how a managed RonDB cluster is spun up in just over a minute whilst the following actions are run:
 
-- New containers are requested from the flask server for a data node, a MySQL server and an API node.
-- There is a rolling software upgrade of the ndb-agent (the database orchestrator).
-- RonDB is started.
+- 3 new containers are spawned to host a data node, a MySQL server and an API node
+- There is a rolling software upgrade of the ndb-agent (the database orchestrator)
+- RonDB is started
 - A backup of the database is taken and saved on a local Docker volume.
 
 Once it is finished, the `RECONCILIATION STATE` moves from `WORKING_TOWARDS_DESIRED_STATE` to `AT_DESIRED_STATE`.
@@ -32,13 +39,21 @@ docker logs flask-server -f
 
 Now you can follow how the cluster is being created. You can change the [desired_state.jsonc](desired_state.jsonc) file both before running a cluster or whilst it is running. The leader ndb-agent will accept new desired states when its `RECONCILIATION STATE` is `AT_DESIRED_STATE` or `ERROR_STATE`. You can however change the json file whenever you want to.
 
-## Used Images
+## Images in Docker Compose File
 
-The Docker Compose project consists of the following images:
+The Docker Compose file consists of the following images:
 
-* **ndb-agent**: This our database management tool that is responsible for the orchestration of RonDB. It uses `hopsworks/rondb-standalone` as a base image, so the ndb-agent of a given container can start/stop any RonDB program (management server, data node, MySQLd, etc.) inside the same container. We use supervisorctl to run multiple processes in the containers.
-* **flask-server**: This is a web-server which forwards the desired state of the cluster to the leader ndb-agent and is capable of spawning new containers if the ndb-agent asks it to. It is light-weight program, which simulates a web server that can spawn VMs in the cloud. The [desired_state.jsonc](desired_state.jsonc) file is mounted into the Flask server, so that the user can change the desired state for a running cluster.
-* **nginx-server**: This is a reverse proxy that hosts tarballs of different versions of the ndb-agent and RonDB. For the ndb-agent, the versions are all equivalent, but they can be used for testing a rolling software upgrade. Regarding RonDB, the nginx server just forwards the requests to https://repo.hops.works and then caches the downloads, so that we save internet bandwidth.
+### [hopsworks/rondb-managed](https://hub.docker.com/repository/docker/hopsworks/rondb-managed):
+
+This image uses `hopsworks/rondb-standalone` as a base image and then installs the ***ndb-agent*** on top of it. The ndb-agent is our database management tool that is responsible for the orchestration of RonDB. The ndb-agent contains both the logic of the state machine (how to move to a desired state given a certain internal state) and gRPC functions. The leader ndb-agent uses the state machine to decide when to call which gRPC function on which ndb-agent (it can also call a gRPC function on itself). Example gRPC functions include functions to start/stop any RonDB program (management server, data node, MySQLd, etc.) inside the same container. In order to run both RonDB services and the ndb-agent in the containers, we use supervisorctl as a process manager.
+
+### [hopsworks/flask-server-rondb](https://hub.docker.com/repository/docker/hopsworks/flask-server-rondb):
+
+This is a web-server which forwards the desired state of the cluster to the leader ndb-agent and is capable of spawning new containers if the leader ndb-agent asks it to. It is light-weight program, which simulates a web server that can spawn VMs in the cloud. The [desired_state.jsonc](desired_state.jsonc) file is mounted into the Flask server, so that the user can change the desired state for a running cluster.
+
+### [hopsworks/nginx-rondb](https://hub.docker.com/repository/docker/hopsworks/nginx-rondb):
+
+This is a reverse proxy that hosts tarballs of different versions of the ndb-agent and RonDB. For the ndb-agent, the versions are all equivalent, but they can be used for testing a rolling software upgrade. Regarding RonDB, the nginx server just forwards the requests to https://repo.hops.works and then caches the downloads, so that we save internet bandwidth.
 
 ## Background on Ndb-Agent
 
@@ -50,7 +65,7 @@ The ndb-agent is a Go program, which works similar to Kubernetes. At the heart o
 
 Whenever the ndb-agent realises that its internal state diverges from the desired state, it will move to `WORKING_TOWARDS_DESIRED_STATE` and not ask for new desired states. The `ERROR_STATE` means that it has tried reaching the desired state n times (n is configurable) and has failed. The idea is that any (validated) desired state can be reached within one reconciliation loop.
 
-Both at the `ERROR_STATE` and the `AT_DESIRED_STATE`, the ndb-agent will continue observing its state. If it notices that it has diverged from its latest accepted desired state, it will change its `RECONCILIATION STATE` to `WORKING_TOWARDS_DESIRED_STATE` and run the reconciliation loop again.
+Both at the `ERROR_STATE` and the `AT_DESIRED_STATE`, the ndb-agent will continue observing its state. If it is `AT_DESIRED_STATE` and it notices that it has diverged from its latest accepted desired state, it will change its `RECONCILIATION STATE` to `WORKING_TOWARDS_DESIRED_STATE` and run the reconciliation loop again.
 
 All logic of the ndb-agent's state machine is run on the ndb-agent leader. This decides which actions to run to reach a desired state. Most importantly, it runs gRPC functions on the follower ndb-agents. For example, it will execute the gRPC function `StartDataNode` on the ndb-agent which is in the container/VM where the leader decides that a RonDB data node should be run. These gRPC functions are the only side effects the leader has and therefore state transformation tests can be tested fairly easily by replacing these with dummies. In Go, this often simply means returning `err=nil`.
 
