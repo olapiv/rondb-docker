@@ -6,12 +6,14 @@ The code in this directory allows users to test managed RonDB locally using Dock
 
 ![Demo of Managed RonDB with Docker Compose](demo.gif)
 
-This demo shows how a managed RonDB cluster is spun up in just over a minute and the following actions are run:
+This demo shows how a managed RonDB cluster is spun up in just over a minute whilst the following actions are run:
 
 - New containers are requested from the flask server for a data node, a MySQL server and an API node.
 - There is a rolling software upgrade of the ndb-agent (the database orchestrator).
 - RonDB is started.
 - A backup of the database is taken and saved on a local Docker volume.
+
+Once it is finished, the `RECONCILIATION STATE` moves from `WORKING_TOWARDS_DESIRED_STATE` to `AT_DESIRED_STATE`.
 
 The logs are the logs of the flask server, which summarise the current state of the leader ndb-agent.
 
