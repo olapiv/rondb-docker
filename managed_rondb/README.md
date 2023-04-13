@@ -6,6 +6,8 @@ The code in this directory allows users to test managed RonDB locally using Dock
 
 ![Demo of Managed RonDB with Docker Compose](demo.gif)
 
+This demo shows how a managed RonDB cluster is spun up in just over a minute and how the leader ndb-agent requests required containers from the flask server to reach its desired state. The logs are the logs of the flask server, which summarise the current state of the leader ndb-agent.
+
 ## Dependencies
 
 * Docker
