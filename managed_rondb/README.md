@@ -18,7 +18,7 @@ Also, make sure your Docker engine has enough resources configured. 10-16GB of m
 
 ```bash
 docker-compose up -d
-docker logs flask-server-rondb -f
+docker logs flask-server -f
 ```
 
 Now you can follow how the cluster is being created. You can change the [desired_state.jsonc](desired_state.jsonc) file both before running a cluster or whilst it is running. The leader ndb-agent will accept new desired states when its `RECONCILIATION STATE` is `AT_DESIRED_STATE` or `ERROR_STATE`. You can however change the json file whenever you want to.
