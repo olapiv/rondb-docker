@@ -11,16 +11,23 @@ The [desired_state.jsonc](desired_state.jsonc) file describes the API to managed
 
 ## Demo
 
-![Demo of Managed RonDB with Docker Compose](demo.gif)
+<p align="center">
+    <video width="80%" align="center" controls>
+        <source src="demo.mp4" type="video/mp4">
+    </video>
+</p>
 
-This demo shows how a managed RonDB cluster is spun up in just over a minute whilst the following actions are run:
+This demo shows how a managed RonDB cluster is created and then reconfigured by changing the desired state JSON file. 
 
+The first desired state triggers the following actions:
 - 3 new containers are spawned to host a data node, a MySQL server and an API node
-- There is a rolling software upgrade of the ndb-agent (the database orchestrator)
 - RonDB is started
+
+The second desired state triggers the following:
+- A further container is spawned to host a second replica of the data node
 - A backup of the database is taken and saved on a local Docker volume.
 
-Once it is finished, the `RECONCILIATION STATE` moves from `WORKING_TOWARDS_DESIRED_STATE` to `AT_DESIRED_STATE`.
+Once each desired state has been reached, the `RECONCILIATION STATE` moves from `WORKING_TOWARDS_DESIRED_STATE` to `AT_DESIRED_STATE`.
 
 The logs are the logs of the flask server, which summarise the current state of the leader ndb-agent.
 
