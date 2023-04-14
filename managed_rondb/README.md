@@ -11,11 +11,7 @@ The [desired_state.jsonc](desired_state.jsonc) file describes the API to managed
 
 ## Demo
 
-<p align="center">
-    <video width="80%" align="center" controls>
-        <source src="demo.mp4" type="video/mp4">
-    </video>
-</p>
+https://user-images.githubusercontent.com/31848129/231909057-e8fa2b15-8837-428a-862d-9cac58f0b20b.mp4
 
 This demo shows how a managed RonDB cluster is created and then reconfigured by changing the desired state JSON file. 
 
