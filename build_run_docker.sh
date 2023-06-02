@@ -86,8 +86,10 @@ Usage: $0
                 This parameter is only intended for the
                 wrapper script run.sh in order to easily create
                 clusters that consume varying resources.        ]
-    [-su    --suffix                                    <string>
-                The suffix to set to the project name           ]
+    [-su    --suffix
+                The suffix to add to the project name. Add a 
+                suffix if you want to run several clusters in
+                parallel.                                       ]
 EOF
 }
 
@@ -177,7 +179,7 @@ while [[ $# -gt 0 ]]; do
         shift # past argument
         ;;
     -su | --suffix)
-	    USER_SUFFIX="_$2"
+        USER_SUFFIX="_$2"
         shift # past argument
         shift # past value
         ;;
@@ -813,7 +815,7 @@ MULTI_API_IPS=${MULTI_API_IPS%?}
 for EMPTY_API_SLOT in $(seq "$EMPTY_API_SLOTS"); do
     if [ ! -n "$API_NODE_ID" ]; then
         API_NODE_ID=$FIRST_USEABLE_API_NODE_ID
-    else 
+    else
         API_NODE_ID=$((API_NODE_ID + 1))
     fi
     # NodeId, NodeActive, ArbitrationRank, HostName
