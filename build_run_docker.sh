@@ -811,7 +811,11 @@ MULTI_API_IPS=${MULTI_API_IPS%?}
 # the NDB API. Important: these containers need to first be
 # connected to the cluster's Docker Compose network.
 for EMPTY_API_SLOT in $(seq "$EMPTY_API_SLOTS"); do
-    API_NODE_ID=$((API_NODE_ID + 1))
+    if [ ! -n "$API_NODE_ID" ]; then
+        API_NODE_ID=$FIRST_USEABLE_API_NODE_ID
+    else 
+        API_NODE_ID=$((API_NODE_ID + 1))
+    fi
     # NodeId, NodeActive, ArbitrationRank, HostName
     SLOT=$(printf "$CONFIG_INI_API_TEMPLATE" "$API_NODE_ID" "1" "0" "")  # Empty HostName
     CONFIG_INI=$(printf "%s\n\n%s" "$CONFIG_INI" "$SLOT")
