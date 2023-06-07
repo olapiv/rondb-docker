@@ -732,7 +732,7 @@ if [ $NUM_BENCH_NODES -gt 0 ]; then
 
             # MySQLd might be up, but still not entirely ready yet..
             command=$(printf "$COMMAND_TEMPLATE" ">
-          bash -c \"sleep 15 && bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
+          bash -c \"sleep 5 && bench_run.sh --verbose --default-directory $BENCH_DIR/$RUN_BENCHMARK $GENERATE_DBT2_DATA_FLAG\"")
         fi
 
         template+="$command"
