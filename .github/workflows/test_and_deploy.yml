@@ -53,10 +53,10 @@ jobs:
       - run: docker logs bench_1
 
       # At this point we only know that one container has exited. We want to
-      # check whether the API container has exited with exit code 0. We need
-      # both status and exit code to do so, since docker reports exit code 0
+      # check whether the bench container has exited with exit code 0. We need
+      # both status and exit code to do so, since Docker reports exit code 0
       # for running containers.
-      - name: Check API Exit Code
+      - name: Check Benchmarking Exit Code
         run: |
           if [ "$(docker inspect bench_1 --format='{{.State.Status}}')" != "exited" ]
           then
