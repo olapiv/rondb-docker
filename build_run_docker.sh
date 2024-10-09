@@ -379,7 +379,7 @@ if [ "$NUM_MYSQLD_NODES" -gt 0 ]; then
 fi
 
 DATA_DIR="/srv/hops/mysql-cluster"
-BENCH_DIR="/home/mysql/benchmarks"
+BENCH_DIR="/srv/hops/benchmarks"
 
 #######################
 #######################
@@ -433,6 +433,7 @@ service-template() {
     %s:
       image: %s
       container_name: %s
+      user: $(id -u):$(id -g)
 " "$SERVICE_NAME" "$RONDB_IMAGE_ID" "$SERVICE_NAME";
 }
 
